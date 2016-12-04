@@ -16,7 +16,9 @@
     "purescript-foldable-traversable": "1.0.0",
     "purescript-debug": "1.0.0",
     "purescript-functions": "1.0.0",
-    "purescript-foreign": "^1.1.0"
+    "purescript-foreign": "^1.1.0",
+    "purescript-maps": "^1.2.0",
+    "purescript-foreign-generic": "^1.0.1"
   },
   "resolutions": {
     "purescript-unfoldable": "^1.0.0",
@@ -26,7 +28,7 @@
     "purescript-either": "^1.0.0",
     "purescript-lazy": "^1.0.0",
     "purescript-strings": "^1.0.0",
-    "purescript-functions": "^1.0.0",
+    "purescript-functions": "1.0.0",
     "purescript-control": "^1.0.0",
     "purescript-tailrec": "^1.0.0",
     "purescript-identity": "^1.0.0",
@@ -35,7 +37,7 @@
     "purescript-eff": "^1.0.0",
     "purescript-prelude": "^1.0.0",
     "purescript-arrays": "^1.0.0",
-    "purescript-foldable-traversable": "^1.0.0",
+    "purescript-foldable-traversable": "1.0.0",
     "purescript-bifunctors": "^1.0.0",
     "purescript-maybe": "^1.0.0",
     "purescript-monoid": "^1.0.0",
