@@ -18,7 +18,9 @@
     "purescript-functions": "1.0.0",
     "purescript-foreign": "^1.1.0",
     "purescript-maps": "^1.2.0",
-    "purescript-foreign-generic": "^1.0.1"
+    "purescript-foreign-generic": "^1.0.1",
+    "purescript-eff-functions": "^1.0.0",
+    "purescript-transformers": "1.0.0"
   },
   "resolutions": {
     "purescript-unfoldable": "^1.0.0",

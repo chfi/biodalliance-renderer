@@ -4,39 +4,31 @@ exports.getTierCanvasContext = function(tier) {
     return tier.viewport.getContext("2d");
 };
 
-exports.setViewportHeight = function(tier) {
+exports.setTierHeight = function(tier) {
     return function(height) {
-        tier.viewport.style.height = height + "px";
         tier.viewport.height = height;
-        tier.viewport.layoutHeight = height;
-        tier.viewport.updateHeight();
+        tier.layoutHeight = height;
+        tier.updateHeight();
+
+        tier.norigin = tier.browser.viewStart;
+
+        tier.originHaxx = 0;
+        tier.browser.arrangeTiers();
     };
 };
 
-exports.drawTierImpl = function(ctx) {
-    return function(unparsedTier) {
-        return function(tier) {
-            return function(eff) {
-                // ugly unwrap of parsed tier
-                var t = tier.value0;
+exports.getViewport = function(tier) {
+    return tier.viewport;
+};
 
-                // tier.viewport.style.width = 500;
-                unparsedTier.viewport.height = 500;
-                unparsedTier.viewport.style.height = "500px";
-                // unparsedTier.updateHeight();
-                unparsedTier.layoutHeight = 500;
-                unparsedTier.updateHeight();
-                // unparsedTier.norigin = unparsedTier.browser.viewStart;
-                // ctx.canvas.width = 500;
-                // ctx.canvas.height = 500;
+exports.getFeatures = function(tier) {
+    return tier.currentFeatures;
+};
 
-                // ctx.clearRect(0, 0, 500, 500);
+exports.getTierLength = function(tier) {
+    return tier.knownCoverage.max;
+};
 
-                console.log(unparsedTier.viewport.height);
-                console.log("unsafe!!!");
-                console.log(eff);
-                eff();
-            };
-        };
-    };
+exports.runEff = function(f) {
+    f();
 };

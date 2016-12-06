@@ -1,8 +1,8 @@
 module Biodalliance.Renderer
        (renderTier
        , drawTier
-       , drawFeature
-       , Feature(..)
+       -- , drawFeature
+       -- , Feature(..)
        , Tier(..)
        )
        where
@@ -11,7 +11,6 @@ import Prelude
 
 import Control.Monad.Eff.Console
 import Control.Monad.Eff (Eff)
-import Control.Monad.Except (runExcept)
 
 import Data.Array (concat, zip)
 import Data.List as List
@@ -28,101 +27,38 @@ import Debug.Trace
 import Graphics.Canvas (CANVAS, Context2D)
 import Graphics.Canvas.Free
 
-import Data.Foreign (Foreign, F, writeObject, unsafeFromForeign)
-import Data.Foreign.Class (class AsForeign, class IsForeign, (.=), readJSON, readProp, write, read)
-import Data.Foreign.Index (prop, (!))
-import Data.Foreign.Keys (keys)
+type Feature = { min :: Number
+               , max :: Number
+               }
 
-import Data.Foreign.Generic
+foreign import data Tier :: *
+foreign import data Viewport :: *
 
+-- used to run effectful functions: runEff = function(f) { f() };
+foreign import runEff :: forall eff. Eff eff Unit -> Eff eff Unit
 
-  -- TODO
-foreign import getTierCanvasContext :: Foreign -> Context2D
+foreign import getTierCanvasContext :: Tier -> Context2D
+foreign import setTierHeight :: Tier -> Number -> Unit
+foreign import drawTierImpl :: Context2D -> Tier -> Unit
+foreign import getViewport :: Tier -> Viewport
 
--- foreign import drawTierImpl :: forall eff. Context2D -> Tier -> Eff (canvas :: CANVAS, console :: CONSOLE) Unit
-foreign import drawTierImpl :: forall eff. Context2D -> Foreign -> F Tier -> Eff (canvas :: CANVAS | eff) Unit -> Unit
-
-foreign import setViewportHeight :: Foreign -> Number -> Unit
-
-
-newtype Feature = Feature { min :: Number, max :: Number }
-
-instance featureIsForeign :: IsForeign Feature where
-  read value = do
-    min <- readProp "min" value
-    max <- readProp "max" value
-    pure $ Feature { min, max }
-
-instance featureAsForeign :: AsForeign Feature where
-  write (Feature f) = writeObject [ "min" .= f.min
-                                  , "max" .= f.max
-                                  ]
-
-
-instance featureShow :: Show Feature where
-  show (Feature f) = "(Feature: min: " <> show f.min <> ", max: " <> show f.max <> ")"
-
-
-newtype Tier = Tier { ungroupedFeatures :: StrMap (Array Feature) }
-
-
-parseObject :: forall a. (IsForeign a) => Foreign -> F (Array (Tuple String a))
-parseObject f = do
-  ks <- keys f
-  vs <- traverse (\k -> f ! k >>= read) ks
-  pure $ zip ks vs
-
-
-instance tierIsForeign :: IsForeign Tier where
-  read value = do
-    features <- readProp "ungroupedFeatures" value >>= parseObject
-    let mapped = Map.fromFoldable features
-    pure $ Tier { ungroupedFeatures: mapped }
-
-instance tierAsForeign :: AsForeign Tier where
-  write (Tier t) = writeObject [ "ungroupedFeatures" .= writeObject features ]
-    where features = map (\(Tuple k v) -> k .= v)
-                     $ List.toUnfoldable
-                     $ Map.toList t.ungroupedFeatures
-
-instance tierShow :: Show Tier where
-  show (Tier t) = "tier: " <> show (Map.size t.ungroupedFeatures)
-
-
-
-data Track = Track (Array Feature -> Array (Graphics Unit))
-
-
-type Glyph = Graphics Unit
-
-
-
+foreign import getFeatures :: Tier -> (Array Feature)
 
 drawFeature :: Feature -> Graphics Unit
-drawFeature (Feature f) = do
-  setFillStyle "#FF0000"
-  setStrokeStyle "#000000"
-  fillRect $ { x: f.min,w: (f.max - f.min), y: 100.0, h: 10.0 }
+drawFeature f = do
+    setFillStyle "#FF0000"
+    setStrokeStyle "#000000"
+    let x1 = f.min / 400000.0 + 1000.0
+        x2 = f.max / 400000.0 + 1000.0
+    fillRect $ { x: x1, w: (x2 - x1), y: 100.0, h: 10.0 }
 
+drawFeatures :: forall eff. Tier -> Eff (canvas :: CANVAS | eff) Unit
+drawFeatures tier = do
+  pure $ setTierHeight tier 500.0
+  runGraphics (getTierCanvasContext tier) $ sequence_ $ map drawFeature $ getFeatures tier
 
-renderTier :: Fn2 String Foreign Unit
-renderTier = mkFn2 \status tier -> runFn1 drawTier tier
+renderTier :: forall eff. Fn2 String Tier (Eff (canvas :: CANVAS | eff) Unit)
+renderTier = mkFn2 \status tier -> runEff $ runFn1 drawTier tier
 
-
-
-f1 :: Feature
-f1 = Feature { min: 100.0, max: 200.0}
-
-
-     -- TODO parse errors should be dealt with before calling this function
--- drawTierImpl :: F Tier -> Graphics Unit
--- drawTierImpl tier = traceAny tier \_ -> drawFeature f1
-
-drawTier :: Fn1 Foreign Unit
-drawTier = mkFn1 \tier -> drawTierImpl (getCtx tier) tier (read tier) (runGraphics (getCtx tier) $ drawFeature f1)
-  where getCtx = getTierCanvasContext
-
-
--- showFeature :: forall eff. Foreign -> Eff (console :: CONSOLE | eff) Unit
--- showFeature f = logShow $ read f :: F Feature
--- showFeature f = logShow $ runExcept $ readJSON """{}"
+drawTier :: forall eff. Fn1 Tier (Eff (canvas :: CANVAS | eff) Unit)
+drawTier = mkFn1 drawFeatures
