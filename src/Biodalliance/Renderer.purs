@@ -39,7 +39,6 @@ foreign import runEff :: forall eff. Eff eff Unit -> Eff eff Unit
 
 foreign import getTierCanvasContext :: Tier -> Context2D
 foreign import setTierHeight :: Tier -> Number -> Unit
-foreign import drawTierImpl :: Context2D -> Tier -> Unit
 foreign import getViewport :: Tier -> Viewport
 
 foreign import getFeatures :: Tier -> (Array Feature)
