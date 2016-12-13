@@ -29,6 +29,15 @@ exports.getTierLength = function(tier) {
     return tier.knownCoverage.max;
 };
 
+exports.tierScaleFactor = function(tier) {
+    var sf = { bpPerPixel: 1/tier.browser.scale,
+               viewStart: tier.browser.viewStart,
+               canvasHeight: tier.viewport.height
+           };
+    console.log(sf);
+    return sf;
+};
+
 exports.runEff = function(f) {
     f();
 };
