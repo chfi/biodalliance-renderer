@@ -56,15 +56,7 @@ foreign import getFeatures :: Tier -> (Array Feature)
 
 
 data Point = Point { x :: Number, y :: Number}
-
-instance semiringPoint :: Semiring Point where
-  add (Point p1) (Point p2) = Point { x: (add p1.x p2.x)
-                                    , y: (add p1.y p2.y)}
-  zero = Point { x: 0.0, y: 0.0 }
-  mul (Point p1) (Point p2) = Point { x: (mul p1.x p2.x)
-                                    , y: (mul p1.y p2.y)}
-  one = Point { x: 1.0, y: 1.0 }
-
+type Point' = { x :: Number, y :: Number }
 
 type ScaleFactor = { bpPerPixel :: Number
                    , viewStart :: Number
@@ -86,23 +78,19 @@ worldToCanvas' (Point p) c = Point  { x: (p.x - c.viewStart) / c.bpPerPixel
 -- something that only requires a scaling factor and offset efore it's drawn to canvas
 type DrawInst = ScaleFactor -> Graphics Unit
 
-              -- only x needs to be scaled, y should be in pixels to begin with (right??)
-drawLine :: Number -> Number -> Number -> Number -> DrawInst
-drawLine x1 y1 x2 y2 c = do
-  let x1' = worldToCanvas x1 c
-      x2' = worldToCanvas x2 c
-  setStrokeStyle "#000000"
-  moveTo x1' y1
-  lineTo x2' y2
-  stroke
+moveTo' :: Point -> Graphics Unit
+moveTo' (Point p) = moveTo p.x p.y
 
-drawLine' :: Point -> Point -> DrawInst
-drawLine' p1 p2 c = do
+lineTo' :: Point -> Graphics Unit
+lineTo' (Point p) = lineTo p.x p.y
+
+drawLine :: Point -> Point -> DrawInst
+drawLine p1 p2 c = do
   let p1' = worldToCanvas' p1 c
       p2' = worldToCanvas' p2 c
   setStrokeStyle "#000000"
-  moveTo p1'.x p1'.y
-  lineTo p2'.x p2'.y
+  moveTo' p1'
+  lineTo' p2'
   stroke
 
 drawRect :: Number -> Number -> Number -> Number -> DrawInst
@@ -120,7 +108,9 @@ pointPlot fs = map (\f -> drawRect f.min (f.score - 3.9) (f.max + 200000.0) (f.s
 
 linePlot :: Array Feature -> Array DrawInst
 linePlot fs = case tail fs of
-                   Just fs' -> zipWith (\a b -> drawLine a.max a.score b.min b.score) fs fs'
+                   Just fs' -> zipWith (\a b -> drawLine
+                                                (Point { x: a.max, y: a.score})
+                                                (Point { x: b.min, y: b.score})) fs fs'
                    Nothing -> []
 
 
@@ -140,7 +130,7 @@ drawFeature f = do
 drawFeatures :: forall eff. Tier -> Eff (canvas :: CANVAS | eff) Unit
 drawFeatures tier = do
   pure $ setTierHeight tier 500.0
-  trace "drawing" \_ -> runGraphics (getTierCanvasContext tier) $ sequence_ $ applyConfig $ linePlot (getFeatures tier)
+  runGraphics (getTierCanvasContext tier) $ sequence_ $ applyConfig $ linePlot (getFeatures tier)
 
 
   -- TODO these should be written directly in javascript, in another file,
