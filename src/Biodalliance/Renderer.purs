@@ -37,26 +37,40 @@ foreign import tierFeatures :: Tier -> (Array Feature)
 
 foreign import tierScaleFactor :: Tier -> ScaleFactor
 
+type LinePlotConfig = { minScore :: Number
+                      , maxScore :: Number
+                      , canvasHeight :: Number
+                      , color :: String
+                      }
 
-linePlotGlyph :: forall eff. Tier -> Glyph Unit eff
-linePlotGlyph tier = flattenGlyphs $
+normalizeScore :: LinePlotConfig -> Number -> Number
+normalizeScore conf y = ((y - conf.minScore) / (conf.maxScore))
+
+linePlotGlyph :: forall eff. LinePlotConfig -> Tier -> Glyph Unit eff
+linePlotGlyph conf tier = flattenGlyphs $
   case tail (tierFeatures tier) of
     Nothing -> []
                                           -- TODO: origin shift should be dynamic (max(score) - min(score) + C?)
-    Just fs' -> zipWith (\f1 f2 -> line { x: f1.max, y: (f1.score - 4.0) / 5.0 }
-                                        { x: f2.min, y: (f2.score - 4.0) / 5.0 }
+    Just fs' -> zipWith (\f1 f2 -> line { x: f1.max, y: normalizeScore conf f1.score }
+                                        { x: f2.min, y: normalizeScore conf f2.score }
                         ) (tierFeatures tier) fs'
 
 
-
-drawFeatures :: forall eff. Tier -> Eff (canvas :: CANVAS | eff) Unit
-drawFeatures tier = do
+linePlotRenderer :: forall eff. LinePlotConfig -> Tier -> Eff (canvas :: CANVAS | eff) Unit
+linePlotRenderer conf tier = do
   let sf = tierScaleFactor tier
       ctx = tierCanvasContext tier
-  -- TODO: dynamic tier height
-  pure $ setTierHeight tier 500.0
-  setStrokeStyle "#000000" ctx
-  linePlotGlyph tier sf ctx
+  pure $ setTierHeight tier conf.canvasHeight
+  setStrokeStyle conf.color ctx
+  linePlotGlyph conf tier sf ctx
+
+
+qtlPlotConfig :: LinePlotConfig
+qtlPlotConfig = { minScore: 3.0
+                , maxScore: 5.0
+                , canvasHeight: 400.0
+                , color: "#dd0000"}
+
 
   -- TODO these should be written directly in javascript, in another file,
   -- to ensure compatibility
@@ -64,4 +78,4 @@ renderTier :: forall eff. Fn2 String Tier (Eff (canvas :: CANVAS | eff) Unit)
 renderTier = mkFn2 \status tier -> runEff $ runFn1 drawTier tier
 
 drawTier :: forall eff. Fn1 Tier (Eff (canvas :: CANVAS | eff) Unit)
-drawTier = mkFn1 drawFeatures
+drawTier = mkFn1 (linePlotRenderer qtlPlotConfig)
