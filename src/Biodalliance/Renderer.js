@@ -1,6 +1,6 @@
 "use strict";
 
-exports.getTierCanvasContext = function(tier) {
+exports.tierCanvasContext = function(tier) {
     return tier.viewport.getContext("2d");
 };
 
@@ -21,7 +21,7 @@ exports.getViewport = function(tier) {
     return tier.viewport;
 };
 
-exports.getFeatures = function(tier) {
+exports.tierFeatures = function(tier) {
     return tier.currentFeatures;
 };
 
