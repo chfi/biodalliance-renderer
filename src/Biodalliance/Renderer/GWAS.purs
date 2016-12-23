@@ -6,32 +6,39 @@ module Biodalliance.Renderer.GWAS
 import Prelude
 
 import Control.Monad.Eff (Eff)
-import Data.Function.Uncurried (Fn1, Fn2, mkFn1, mkFn2, runFn1)
+import Data.Function.Uncurried (Fn2, mkFn2)
 import Graphics.Canvas (CANVAS, setStrokeStyle)
 
 import Biodalliance.Glyph (Glyph, circle, flattenGlyphs, logScale)
-import Biodalliance.Track (Tier, Feature)
+import Biodalliance.Track (Tier, Feature, TIEREFF)
 import Biodalliance.Track as Track
 
-type GWASFeature = Feature ( pValue :: Number )
+
+type GWASFeature = Feature ( score :: Number )
 
 gwasGlyph :: forall eff. GWASFeature -> Glyph Unit eff
-gwasGlyph { min, max, pValue } = circle { x: min, y: pValue } 3.0
+gwasGlyph { min, max, score } = circle { x: min, y: score } 3.0
 
-gwasPlotGlyph :: forall eff. Tier -> Glyph Unit eff
-gwasPlotGlyph tier = flattenGlyphs $ map gwasGlyph (Track.features tier)
+gwasPlotGlyph :: forall eff. Array GWASFeature
+              -> Glyph Unit eff
+gwasPlotGlyph fs = flattenGlyphs $ map gwasGlyph fs
 
-drawGwasPlot :: forall eff. Tier -> Eff (canvas :: CANVAS | eff) Unit
+drawGwasPlot :: forall eff. Tier
+             -> Eff (canvas :: CANVAS, tierEff :: TIEREFF | eff) Unit
 drawGwasPlot tier = do
-  pure $ Track.setHeight tier 500.0
-  let sf = Track.scaleFactor tier logScale
-      ctx = Track.canvasContext tier
+  Track.setHeight tier 500.0
+  sf <- Track.scaleFactor tier logScale
+  ctx <- Track.canvasContext tier
   setStrokeStyle "#222222" ctx
-  gwasPlotGlyph tier sf ctx
+  fs <- Track.features tier
+  gwasPlotGlyph fs sf ctx
 
 
-renderTier :: forall eff. Fn2 String Tier (Eff (canvas :: CANVAS | eff) Unit)
-renderTier = mkFn2 \status tier -> Track.runEff $ runFn1 drawTier tier
+renderTier :: forall eff.
+              Fn2 String Tier
+              (Eff (canvas :: CANVAS, tierEff :: TIEREFF  | eff) Unit)
+renderTier = mkFn2 \status tier -> Track.runEff $ drawTier tier
 
-drawTier :: forall eff. Fn1 Tier (Eff (canvas :: CANVAS | eff) Unit)
-drawTier = mkFn1 drawGwasPlot
+drawTier :: forall eff. Tier
+         -> (Eff (canvas :: CANVAS, tierEff :: TIEREFF  | eff) Unit)
+drawTier = drawGwasPlot
