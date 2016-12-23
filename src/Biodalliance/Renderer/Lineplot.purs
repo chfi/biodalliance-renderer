@@ -8,11 +8,11 @@ import Prelude
 
 import Control.Monad.Eff (Eff)
 import Data.Array (tail, zipWith)
-import Data.Maybe (Maybe(..))
 import Data.Function.Uncurried (Fn1, Fn2, mkFn1, mkFn2, runFn1)
+import Data.Maybe (Maybe(..))
 import Graphics.Canvas (CANVAS, setStrokeStyle)
 
-import Biodalliance.Glyph (Glyph, line, flattenGlyphs)
+import Biodalliance.Glyph (Glyph, line, flattenGlyphs, linearScale)
 import Biodalliance.Track (Tier, Feature, tierCanvasContext, runEff,
                            setTierHeight, tierFeatures, tierScaleFactor)
 
@@ -29,16 +29,17 @@ normalizeScore :: LinePlotConfig -> Number -> Number
 normalizeScore conf y = ((y - conf.minScore) / (conf.maxScore))
 
 linePlotGlyph :: forall eff. LinePlotConfig -> Tier -> Glyph Unit eff
-linePlotGlyph conf tier = flattenGlyphs $
-  case tail (tierFeatures tier) of
-    Nothing -> []
-    Just fs' -> zipWith (\f1 f2 -> line { x: f1.max, y: normalizeScore conf f1.score }
-                                        { x: f2.min, y: normalizeScore conf f2.score }
-                        ) (tierFeatures tier) fs'
+linePlotGlyph conf tier = flattenGlyphs gs
+  where fToPoint f = { x: f.min, y: normalizeScore conf f.score }
+        gs = case tail (tierFeatures tier) of
+          Nothing -> []
+          Just fs' -> zipWith (\f1 f2 -> line (fToPoint f1) (fToPoint f2))
+                      (tierFeatures tier) fs'
+
 
 drawLinePlot :: forall eff. LinePlotConfig -> Tier -> Eff (canvas :: CANVAS | eff) Unit
 drawLinePlot conf tier = do
-  let sf = tierScaleFactor tier
+  let sf = tierScaleFactor tier linearScale
       ctx = tierCanvasContext tier
   pure $ setTierHeight tier conf.canvasHeight
   setStrokeStyle conf.color ctx

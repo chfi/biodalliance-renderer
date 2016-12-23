@@ -14,7 +14,7 @@ import Control.Monad.Eff (Eff)
 
 import Graphics.Canvas (Context2D)
 
-import Biodalliance.Glyph (ScaleFactor)
+import Biodalliance.Glyph (ScaleFactor, VerticalScale)
 
 type Feature r = { min :: Number, max :: Number | r}
 
@@ -23,10 +23,11 @@ foreign import data Tier :: *
 -- used to run effectful functions: runEff = function(f) { f() };
 foreign import runEff :: forall eff. Eff eff Unit -> Eff eff Unit
 
+-- TODO: rename to `canvasContext` etc., encourage qualified import e.g. use Track.canvasContext
 foreign import tierCanvasContext :: Tier -> Context2D
 
 foreign import setTierHeight :: Tier -> Number -> Unit
 
 foreign import tierFeatures :: forall r. Tier -> (Array (Feature r))
 
-foreign import tierScaleFactor :: Tier -> ScaleFactor
+foreign import tierScaleFactor :: Tier -> (Number -> VerticalScale) -> ScaleFactor

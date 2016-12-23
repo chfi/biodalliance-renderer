@@ -20,11 +20,14 @@ exports.tierFeatures = function(tier) {
 };
 
 exports.tierScaleFactor = function(tier) {
-    var sf = { bpPerPixel: 1/tier.browser.scale,
-               viewStart: tier.browser.viewStart,
-               canvasHeight: tier.viewport.height
-             };
-    return sf;
+    return function(scaleY) {
+        var sf = { bpPerPixel: 1/tier.browser.scale,
+                   viewStart: tier.browser.viewStart,
+                   canvasHeight: tier.viewport.height,
+                   scaleY: scaleY(tier.viewport.height)
+                 };
+        return sf;
+    };
 };
 
 

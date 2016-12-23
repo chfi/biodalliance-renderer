@@ -1,48 +1,57 @@
 module Biodalliance.Glyph
+       ( Glyph
+       , flattenGlyphs
+       , Point
+       , ScaleFactor
+       , VerticalScale
+       , linearScale
+       , logScale
+       , line
+       , rect
+       , circle
+       )
        where
 -- TODO cleanup exports
 
 import Prelude
 
--- import Math as Math
-
-import Control.Monad.Eff.Console
 import Control.Monad.Eff (Eff)
-
-import Control.Monad.Reader
-
-import Debug.Trace
-
-import Data.Array (concat, zip, zipWith, tail)
-import Data.Identity (Identity)
-import Data.Traversable (traverse_, traverse, sequence)
-
+import Data.Traversable (traverse_)
 import Graphics.Canvas (CANVAS, Context2D)
 import Graphics.Canvas as C
+import Math as Math
+
+type Glyph a eff = ScaleFactor -> Context2D -> Eff (canvas :: CANVAS | eff) a
+
+flattenGlyphs :: forall eff. Array (Glyph Unit eff) -> Glyph Unit eff
+flattenGlyphs gs sf ctx = traverse_ (\g -> g sf ctx) gs
 
 
 type ScaleFactor = { bpPerPixel :: Number
                    , viewStart :: Number
                    , canvasHeight :: Number
+                   , scaleY :: VerticalScale
                    }
+
+
+type VerticalScale = Number -> Number
+
+linearScale :: Number -> VerticalScale
+linearScale height y = y * height
+
+logScale :: Number -> VerticalScale
+logScale height y = (Math.log y) * height
+
 
 type Point = { x :: Number, y :: Number}
 
 showPoint :: Point -> String
 showPoint p = "(" <> show p.x <> ", " <> show p.y <> ")"
 
-type Glyph a eff = ScaleFactor -> Context2D -> Eff (canvas :: CANVAS | eff) a
-
--- type Context a = forall eff. Reader { sf :: ScaleFactor, ctx :: Context2D } (Eff (canvas :: CANVAS | eff) a)
-
-flattenGlyphs :: forall eff. Array (Glyph Unit eff) -> Glyph Unit eff
-flattenGlyphs gs sf ctx = traverse_ (\g -> g sf ctx) gs
-
 worldToCanvas :: Point -> ScaleFactor -> Point
-                                                       -- the BD canvas is offset to the left by 1000px
-worldToCanvas p c = { x: ((p.x - c.viewStart) / c.bpPerPixel) + 1000.0
+worldToCanvas p c = { x: ((p.x - c.viewStart) / c.bpPerPixel) + 1000.0 -- the BD canvas is offset by 1000px
                     , y: (p.y * c.canvasHeight)  }
-                    -- , y: p.y }
+
 
 strokeColor :: forall eff. String -> Glyph Context2D eff
 strokeColor col _ ctx = C.setStrokeStyle col ctx
@@ -50,18 +59,14 @@ strokeColor col _ ctx = C.setStrokeStyle col ctx
 fillColor :: forall eff. String -> Glyph Context2D eff
 fillColor col _ ctx = C.setFillStyle col ctx
 
-
 line :: forall eff. Point -> Point -> Glyph Unit eff
 line p1 p2 sf ctx = do
   let p1' = worldToCanvas p1 sf
       p2' = worldToCanvas p2 sf
-  trace ("p1': " <> showPoint p1') \_ -> C.moveTo ctx p1'.x p1'.y
-  -- C.moveTo ctx p1'.x p1'.y
-  trace ("p2': " <> showPoint p2') \_ -> C.lineTo ctx p2'.x p2'.y
-  -- C.lineTo ctx p2'.x p2'.x
+  C.moveTo ctx p1'.x p1'.y
+  C.lineTo ctx p2'.x p2'.x
   C.stroke ctx
   pure unit
-
 
 rect :: forall eff. Point -> Point -> Glyph Unit eff
 rect p1 p2 sf ctx = do
@@ -81,6 +86,6 @@ circle p r sf ctx = do
             , y: p'.y
             , r: r
             , start: 0.0
-            , end: 3.141592
+            , end: Math.pi
             }
   pure unit
