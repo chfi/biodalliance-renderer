@@ -2,16 +2,15 @@ module Biodalliance.Track
        ( Tier
        , Feature(..)
        , runEff
-       , tierCanvasContext
-       , setTierHeight
-       , tierScaleFactor
-       , tierFeatures
+       , canvasContext
+       , setHeight
+       , scaleFactor
+       , features
        ) where
 
 import Prelude
 
 import Control.Monad.Eff (Eff)
-
 import Graphics.Canvas (Context2D)
 
 import Biodalliance.Glyph (ScaleFactor, VerticalScale)
@@ -20,14 +19,15 @@ type Feature r = { min :: Number, max :: Number | r}
 
 foreign import data Tier :: *
 
+-- TODO: should this really be here?
 -- used to run effectful functions: runEff = function(f) { f() };
 foreign import runEff :: forall eff. Eff eff Unit -> Eff eff Unit
 
 -- TODO: rename to `canvasContext` etc., encourage qualified import e.g. use Track.canvasContext
-foreign import tierCanvasContext :: Tier -> Context2D
+foreign import canvasContext :: Tier -> Context2D
 
-foreign import setTierHeight :: Tier -> Number -> Unit
+foreign import setHeight :: Tier -> Number -> Unit
 
-foreign import tierFeatures :: forall r. Tier -> (Array (Feature r))
+foreign import features :: forall r. Tier -> (Array (Feature r))
 
-foreign import tierScaleFactor :: Tier -> (Number -> VerticalScale) -> ScaleFactor
+foreign import scaleFactor :: Tier -> (Number -> VerticalScale) -> ScaleFactor

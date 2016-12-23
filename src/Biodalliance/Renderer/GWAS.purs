@@ -19,13 +19,13 @@ gwasGlyph :: forall eff. GWASFeature -> Glyph Unit eff
 gwasGlyph { min, max, pValue } = circle { x: min, y: pValue } 3.0
 
 gwasPlotGlyph :: forall eff. Tier -> Glyph Unit eff
-gwasPlotGlyph tier = flattenGlyphs $ map gwasGlyph (Track.tierFeatures tier)
+gwasPlotGlyph tier = flattenGlyphs $ map gwasGlyph (Track.features tier)
 
 drawGwasPlot :: forall eff. Tier -> Eff (canvas :: CANVAS | eff) Unit
 drawGwasPlot tier = do
-  pure $ Track.setTierHeight tier 500.0
-  let sf = Track.tierScaleFactor tier logScale
-      ctx = Track.tierCanvasContext tier
+  pure $ Track.setHeight tier 500.0
+  let sf = Track.scaleFactor tier logScale
+      ctx = Track.canvasContext tier
   setStrokeStyle "#222222" ctx
   gwasPlotGlyph tier sf ctx
 

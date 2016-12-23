@@ -11,7 +11,6 @@ module Biodalliance.Glyph
        , circle
        )
        where
--- TODO cleanup exports
 
 import Prelude
 

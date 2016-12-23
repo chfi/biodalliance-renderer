@@ -1,8 +1,8 @@
-exports.tierCanvasContext = function(tier) {
+exports.canvasContext = function(tier) {
     return tier.viewport.getContext("2d");
 };
 
-exports.setTierHeight = function(tier) {
+exports.setHeight = function(tier) {
     return function(height) {
         tier.viewport.height = height;
         tier.layoutHeight = height;
@@ -15,11 +15,11 @@ exports.setTierHeight = function(tier) {
     };
 };
 
-exports.tierFeatures = function(tier) {
+exports.features = function(tier) {
     return tier.currentFeatures;
 };
 
-exports.tierScaleFactor = function(tier) {
+exports.scaleFactor = function(tier) {
     return function(scaleY) {
         var sf = { bpPerPixel: 1/tier.browser.scale,
                    viewStart: tier.browser.viewStart,
