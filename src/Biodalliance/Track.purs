@@ -2,7 +2,8 @@ module Biodalliance.Track
        ( Tier
        , Feature(..)
        , TIEREFF
-       , runEff
+       , Renderer
+       , render
        , canvasContext
        , setHeight
        , scaleFactor
@@ -13,31 +14,25 @@ module Biodalliance.Track
 import Prelude
 
 import Control.Monad.Eff (Eff)
-import Graphics.Canvas (Context2D)
+import Graphics.Canvas (CANVAS, Context2D)
 
 import Biodalliance.Glyph (ScaleFactor, VerticalScale)
 
 type Feature r = { min :: Number, max :: Number | r }
 
-
-
 foreign import data Tier :: *
 foreign import data TIEREFF :: !
-foreign import data TIERGET :: !
-foreign import data TIERSET :: !
+foreign import data Renderer :: *
 
--- TODO: should this really be here?
--- used to run effectful functions: runEff = function(f) { f() };
-foreign import runEff :: forall eff. Eff eff Unit -> Eff eff Unit
+foreign import render :: forall eff. Eff (canvas :: CANVAS, tierEff :: TIEREFF | eff) Unit
+                      -> Renderer
 
--- foreign import canvasContext :: Tier -> Context2D
 foreign import canvasContext :: forall eff. Tier
                              -> Eff (tierEff :: TIEREFF | eff) Context2D
 
 foreign import setHeight :: forall eff. Tier
                          -> Number
                          -> Eff (tierEff :: TIEREFF | eff) Unit
--- foreign import setHeight :: Tier -> Number -> Unit
 
 foreign import features :: forall eff r. Tier
                         -> Eff (tierEff :: TIEREFF | eff) (Array (Feature r))
@@ -45,6 +40,3 @@ foreign import features :: forall eff r. Tier
 foreign import scaleFactor :: forall eff. Tier
                            -> (Number -> VerticalScale)
                            -> Eff (tierEff :: TIEREFF | eff) ScaleFactor
--- foreign import scaleFactor :: Tier -> (Number -> VerticalScale) -> ScaleFactor
-
--- foreign import setQuant :: Tier -> Eff (tierEff :: TIEREFF) Unit

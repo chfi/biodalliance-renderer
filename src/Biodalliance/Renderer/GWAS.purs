@@ -10,7 +10,7 @@ import Data.Function.Uncurried (Fn2, mkFn2)
 import Graphics.Canvas (CANVAS, setStrokeStyle)
 
 import Biodalliance.Glyph (Glyph, circle, flattenGlyphs, logScale)
-import Biodalliance.Track (Tier, Feature, TIEREFF)
+import Biodalliance.Track (Tier, Feature, TIEREFF, Renderer)
 import Biodalliance.Track as Track
 
 
@@ -33,11 +33,8 @@ drawGwasPlot tier = do
   fs <- Track.features tier
   gwasPlotGlyph fs sf ctx
 
-
-renderTier :: forall eff.
-              Fn2 String Tier
-              (Eff (canvas :: CANVAS, tierEff :: TIEREFF  | eff) Unit)
-renderTier = mkFn2 \status tier -> Track.runEff $ drawTier tier
+renderTier :: Fn2 String Tier Renderer
+renderTier = mkFn2 \status tier -> Track.render $ drawTier tier
 
 drawTier :: forall eff. Tier
          -> (Eff (canvas :: CANVAS, tierEff :: TIEREFF  | eff) Unit)

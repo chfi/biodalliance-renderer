@@ -12,7 +12,7 @@ import Data.Maybe (Maybe(..))
 import Graphics.Canvas (CANVAS, setStrokeStyle)
 
 import Biodalliance.Glyph (Glyph, line, flattenGlyphs, linearScale)
-import Biodalliance.Track (Tier, Feature, TIEREFF)
+import Biodalliance.Track (Tier, Feature, TIEREFF, Renderer)
 import Biodalliance.Track as Track
 
 
@@ -56,10 +56,8 @@ qtlPlotConfig = { minScore: 3.0
                 , canvasHeight: 400.0
                 , color: "#dd0000"}
 
-renderTier :: forall eff.
-              Fn2 String Tier
-              (Eff (canvas :: CANVAS, tierEff :: TIEREFF | eff) Unit)
-renderTier = mkFn2 \status tier -> Track.runEff $ drawTier tier
+renderTier :: Fn2 String Tier Renderer
+renderTier = mkFn2 \status tier -> Track.render $ drawTier tier
 
 drawTier :: forall eff. Tier
          -> (Eff (canvas :: CANVAS, tierEff :: TIEREFF | eff) Unit)

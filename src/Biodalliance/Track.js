@@ -38,7 +38,6 @@ exports.scaleFactor = function(tier) {
     };
 };
 
-
-exports.runEff = function(f) {
+exports.render = function(f) {
     f();
 };
