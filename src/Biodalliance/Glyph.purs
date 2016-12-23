@@ -39,7 +39,7 @@ linearScale :: Number -> VerticalScale
 linearScale height y = y * height
 
 logScale :: Number -> VerticalScale
-logScale height y = (Math.log y) * height
+logScale height y = (Math.log y / Math.ln10) * height
 
 
 type Point = { x :: Number, y :: Number}
@@ -48,8 +48,8 @@ showPoint :: Point -> String
 showPoint p = "(" <> show p.x <> ", " <> show p.y <> ")"
 
 worldToCanvas :: Point -> ScaleFactor -> Point
-worldToCanvas p c = { x: ((p.x - c.viewStart) / c.bpPerPixel) + 1000.0 -- the BD canvas is offset by 1000px
-                    , y: (p.y * c.canvasHeight)  }
+worldToCanvas p sf = { x: ((p.x - sf.viewStart) / sf.bpPerPixel) + 1000.0 -- the BD canvas is offset by 1000px
+                    , y: sf.scaleY p.y  }
 
 
 strokeColor :: forall eff. String -> Glyph Context2D eff
@@ -81,10 +81,12 @@ rect p1 p2 sf ctx = do
 circle :: forall eff. Point -> Number -> Glyph Unit eff
 circle p r sf ctx = do
   let p' = worldToCanvas p sf
+  C.beginPath ctx
   C.arc ctx { x: p'.x
             , y: p'.y
             , r: r
             , start: 0.0
-            , end: Math.pi
+            , end: 2.0 * Math.pi
             }
+  C.stroke ctx
   pure unit
