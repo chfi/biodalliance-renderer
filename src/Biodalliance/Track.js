@@ -41,3 +41,22 @@ exports.scaleFactor = function(tier) {
 exports.render = function(f) {
     f();
 };
+
+exports.setQuant = function(tier) {
+    return function(quant) {
+        return function() {
+            if (tier.subtiers[0])
+                tier.subtiers[0].quant = quant;
+            else
+                tier.subtiers = [{quant: quant}];
+        };
+    };
+};
+
+exports.setGlyphs = function(tier) {
+    return function(glyphs) {
+        return function() {
+            tier.subtiers = glyphs;
+        };
+    };
+};

@@ -57,8 +57,7 @@ qtlPlotConfig = { minScore: 3.0
                 , color: "#dd0000"}
 
 renderTier :: Fn2 String Tier Renderer
-renderTier = mkFn2 \status tier -> Track.render $ drawTier tier
+renderTier = mkFn2 \status tier -> drawTier tier
 
-drawTier :: forall eff. Tier
-         -> (Eff (canvas :: CANVAS, tierEff :: TIEREFF | eff) Unit)
-drawTier = (drawLinePlot qtlPlotConfig)
+drawTier :: Tier -> Renderer
+drawTier = Track.render <<< drawLinePlot qtlPlotConfig
