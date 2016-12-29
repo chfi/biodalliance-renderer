@@ -1,45 +1,57 @@
 module Biodalliance.Renderer.GWAS
-       ( renderTier
-       , drawTier
-       ) where
+       where
+       -- ( createRenderer
+       -- ) where
 
 import Prelude
 
 import Control.Monad.Eff (Eff)
-import Data.Traversable (traverse_)
-import Data.Function.Uncurried (Fn2, mkFn2)
+import Data.Function.Uncurried (mkFn2)
 import Graphics.Canvas (CANVAS, setStrokeStyle)
 
-import Biodalliance.Glyph (Glyph, circle, logScale)
+import Biodalliance.Glyph (Glyph, logScale, ScaleFactor)
+import Biodalliance.Glyph as Glyph
 import Biodalliance.Track (Tier, Feature, TIEREFF, Renderer)
 import Biodalliance.Track as Track
 
-
 type GWASFeature = Feature ( score :: Number )
 
-gwasGlyph :: forall eff. GWASFeature -> Glyph eff
-gwasGlyph { min, max, score } = circle { x: min, y: score } 3.0
+gwasGlyph :: forall eff. ScaleFactor -> GWASFeature -> Glyph eff
+gwasGlyph sf { min, max, score } = Glyph.circle { x: min, y: score } 3.0 sf
 
-gwasPlotGlyphs :: forall eff. Array GWASFeature
-              -> Array (Glyph eff)
-gwasPlotGlyphs fs = map gwasGlyph fs
+gwasGlyph' :: forall eff. ScaleFactor -> GWASFeature -> {glyph :: Glyph eff, feature :: GWASFeature }
+gwasGlyph' sf f = { glyph: Glyph.circle { x: f.min, y: f.score } 3.0 sf
+                  , feature: f
+                  }
 
-drawGwasPlot :: forall eff. Tier
-             -> Eff (canvas :: CANVAS, tierEff :: TIEREFF | eff) Unit
-drawGwasPlot tier = do
-  Track.setHeight tier 500.0
+gwasPlotGlyphs :: forall eff. ScaleFactor -> Array GWASFeature -> Array (Glyph eff)
+gwasPlotGlyphs sf fs = map (gwasGlyph sf) fs
+
+gwasPlotGlyphs' :: forall eff. ScaleFactor -> Array GWASFeature -> Array ({glyph :: Glyph eff, feature :: GWASFeature})
+gwasPlotGlyphs' sf fs = map (gwasGlyph' sf) fs
+
+drawGwasPlot :: GWASConfig
+             -> Tier
+             -> Eff (canvas :: CANVAS, tierEff :: TIEREFF) Unit
+drawGwasPlot config tier = do
+  Track.initialize tier
+  Track.setHeight tier config.canvasHeight
   sf <- Track.scaleFactor tier logScale
   ctx <- Track.canvasContext tier
-  setStrokeStyle "#222222" ctx
   fs <- Track.features tier
-  -- Track.setQuant tier { min: 1.0, max: 5.0 }
-  let glyphs = gwasPlotGlyphs fs
-  Track.setGlyphs tier glyphs
-  traverse_ (\g -> g.glyphEff sf ctx) glyphs
+  let glyphs = gwasPlotGlyphs' sf fs
+  Track.setGlyphs2 tier glyphs
+  setStrokeStyle "#222222" ctx
+  -- Glyph.drawGlyphs glyphs sf ctx
+  Glyph.drawGlyphs (map (\g -> g.glyph) glyphs) sf ctx
 
 
-renderTier :: Fn2 String Tier Renderer
-renderTier = mkFn2 \status tier -> drawTier tier
+type GWASConfig = { canvasHeight :: Number }
 
-drawTier :: Tier -> Renderer
-drawTier = Track.render <<< drawGwasPlot
+
+createRenderer :: GWASConfig -> Renderer
+createRenderer config = { renderTier
+                        , drawTier
+                        }
+  where drawTier = Track.render <<< drawGwasPlot config
+        renderTier = mkFn2 \status tier -> drawTier tier

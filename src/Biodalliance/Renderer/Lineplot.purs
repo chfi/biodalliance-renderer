@@ -1,17 +1,17 @@
 module Biodalliance.Renderer.Lineplot
-       ( renderTier
-       , drawTier
+       ( createRenderer
        ) where
 
 import Prelude
 
 import Control.Monad.Eff (Eff)
 import Data.Array (tail, zipWith)
-import Data.Function.Uncurried (Fn2, mkFn2)
+import Data.Function.Uncurried (mkFn2)
 import Data.Maybe (Maybe(..))
 import Graphics.Canvas (CANVAS, setStrokeStyle)
 
-import Biodalliance.Glyph (Glyph, line, flattenGlyphs, linearScale)
+import Biodalliance.Glyph (Glyph, line, linearScale, ScaleFactor)
+import Biodalliance.Glyph as Glyph
 import Biodalliance.Track (Tier, Feature, TIEREFF, Renderer)
 import Biodalliance.Track as Track
 
@@ -29,14 +29,25 @@ normalizeScore conf y = ((y - conf.minScore) / (conf.maxScore))
 
 linePlotGlyph :: forall eff. LinePlotConfig
               -> Array LineFeature
-              -> Glyph Unit eff
-linePlotGlyph conf fs = flattenGlyphs gs
+              -> Array (Glyph eff)
+linePlotGlyph conf fs = gs
   where fToPoint f = { x: f.min, y: normalizeScore conf f.score }
         gs = case tail fs of
           Nothing -> []
           Just fs' -> zipWith (\f1 f2 -> line (fToPoint f1) (fToPoint f2))
                       fs fs'
 
+
+linePlotGlyph' :: forall eff. ScaleFactor
+               -> LinePlotConfig
+               -> Array LineFeature
+               -> Array ({ glyph :: Glyph eff, feature :: LineFeature })
+linePlotGlyph' sf conf fs = gs
+  where fToPoint f = { x: f.min, y: normalizeScore conf f.score }
+        gs = case tail fs of
+          Nothing -> []
+          Just fs' -> zipWith (\f1 f2 -> { glyph: line (fToPoint f1) (fToPoint f2), feature: f1})
+                      fs fs'
 
 drawLinePlot :: forall eff. LinePlotConfig
              -> Tier
@@ -47,7 +58,8 @@ drawLinePlot conf tier = do
   ctx <- Track.canvasContext tier
   fs <- Track.features tier
   setStrokeStyle conf.color ctx
-  linePlotGlyph conf fs sf ctx
+  let glyphs = linePlotGlyph conf fs
+  Glyph.drawGlyphs glyphs sf ctx
 
 
 qtlPlotConfig :: LinePlotConfig
@@ -56,8 +68,10 @@ qtlPlotConfig = { minScore: 3.0
                 , canvasHeight: 400.0
                 , color: "#dd0000"}
 
-renderTier :: Fn2 String Tier Renderer
-renderTier = mkFn2 \status tier -> drawTier tier
 
-drawTier :: Tier -> Renderer
-drawTier = Track.render <<< drawLinePlot qtlPlotConfig
+createRenderer :: LinePlotConfig -> Renderer
+createRenderer config = { renderTier
+                        , drawTier
+                        }
+  where drawTier = Track.render <<< drawLinePlot config
+        renderTier = mkFn2 \status tier -> drawTier tier

@@ -10,10 +10,10 @@ Install dependencies
 bower install
 ```
 
-Build a bundle like this:
+Build a bundle for the renderer you want, like this:
 
 ```shell
-pulp build --main Biodalliance.Renderer --skip-entry-point --to ./psRenderer.js
+pulp build --main Biodalliance.Renderer.GWAS --skip-entry-point --to ./psRenderer.js
 ```
 
 Then, in the file with the BioDalliance browser configuration, add the renderer script,

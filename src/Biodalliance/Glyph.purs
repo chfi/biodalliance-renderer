@@ -1,17 +1,19 @@
 module Biodalliance.Glyph
-       ( Glyph
+       -- ( Glyph
        -- , flattenGlyphs
-       , Point
-       , ScaleFactor
-       , VerticalScale
-       , linearScale
-       , logScale
-       , line
-       , rect
-       , circle
-       , GlyphEff
-       , GlyphPos
-       )
+       -- , Point
+       -- , ScaleFactor
+       -- , VerticalScale
+       -- , linearScale
+       -- , logScale
+       -- , line
+       -- , rect
+       -- , circle
+       -- , circleEff
+       -- , GlyphEff
+       -- , GlyphPos
+       -- , drawGlyphs
+       -- )
        where
 
 import Prelude
@@ -22,25 +24,23 @@ import Graphics.Canvas (CANVAS, Context2D)
 import Graphics.Canvas as C
 import Math as Math
 
-import Biodalliance.Track (TIEREFF)
 
--- type Glyph a eff = ScaleFactor -> Context2D -> Eff (canvas :: CANVAS | eff) a
 
-type GlyphEff eff = ScaleFactor -> Context2D -> Eff (canvas :: CANVAS | eff) Unit
 type GlyphPos = { min :: Unit -> Number
                 , max :: Unit -> Number
                 , minY :: Unit -> Number
                 , maxY :: Unit -> Number
                 }
 
-type GlyphEff' eff = ScaleFactor -> Context2D -> Eff (canvas :: CANVAS, tierEff :: TIEREFF | eff) Unit
+type GlyphEff eff = ScaleFactor -> Context2D -> Eff (canvas :: CANVAS | eff) Unit
 
+-- type Glyph eff = { glyphEff :: ScaleFactor -> Context2D -> Eff (canvas :: CANVAS) Unit
 type Glyph eff = { glyphEff :: GlyphEff eff
-                  , glyphPos :: GlyphPos
-                  }
+                 , glyphPos :: GlyphPos
+                 }
 
-sequenceGlyphEffs :: forall eff. Array (GlyphEff eff) -> GlyphEff eff
-sequenceGlyphEffs gs sf ctx = traverse_ (\g -> g sf ctx) gs
+drawGlyphs :: forall eff. Array (Glyph eff) -> GlyphEff eff
+drawGlyphs gs sf ctx = traverse_ (\g -> g.glyphEff sf ctx) gs
 
 
 type ScaleFactor = { bpPerPixel :: Number
@@ -69,16 +69,10 @@ worldToCanvas p sf = { x: ((p.x - sf.viewStart) / sf.bpPerPixel) + 1000.0 -- the
                     , y: sf.scaleY p.y  }
 
 
--- strokeColor :: forall eff. String -> Glyph Context2D eff
--- strokeColor col _ ctx = C.setStrokeStyle col ctx
-
--- fillColor :: forall eff. String -> Glyph Context2D eff
--- fillColor col _ ctx = C.setFillStyle col ctx
-
-line :: forall eff. Point -> Point -> Glyph eff
-line p1 p2 = { glyphEff: lineEff p1 p2
-             , glyphPos: linePos p1 p2
-             }
+line :: forall eff. Point -> Point -> ScaleFactor -> Glyph eff
+line p1 p2 sf = { glyphEff: lineEff p1 p2
+                , glyphPos: linePos p1 p2 sf
+                }
 
 lineEff :: forall eff. Point -> Point -> GlyphEff eff
 lineEff p1 p2 sf ctx = C.withContext ctx $ do
@@ -87,21 +81,22 @@ lineEff p1 p2 sf ctx = C.withContext ctx $ do
   C.moveTo ctx p1'.x p1'.y
   C.lineTo ctx p2'.x p2'.x
   C.stroke ctx
-  Track.addGlyph
   pure unit
 
-linePos :: Point -> Point -> GlyphPos
-linePos p1 p2 = { min: \_ -> Math.min p1.x p2.x
-                , max: \_ -> Math.max p1.x p2.x
-                , minY: \_ -> Math.min p1.y p2.y
-                , maxY: \_ -> Math.max p1.y p2.y
+linePos :: Point -> Point -> ScaleFactor -> GlyphPos
+linePos p1 p2 sf = { min: \_ -> Math.min (p1'.x - 985.0) (p2'.x - 985.0)
+                   , max: \_ -> Math.max (p1'.x - 985.0) (p2'.x - 985.0)
+                   , minY: \_ -> Math.min p1'.y p2'.y
+                   , maxY: \_ -> Math.max p1'.y p2'.y
+                   }
+  where p1' = worldToCanvas p1 sf
+        p2' = worldToCanvas p2 sf
+
+
+rect :: forall eff. Point -> Point -> ScaleFactor -> Glyph eff
+rect p1 p2 sf = { glyphEff: rectEff p1 p2
+                , glyphPos: rectPos p1 p2 sf
                 }
-
-
-rect :: forall eff. Point -> Point -> Glyph eff
-rect p1 p2 = { glyphEff: rectEff p1 p2
-             , glyphPos: rectPos p1 p2
-             }
 
 rectEff :: forall eff. Point -> Point -> GlyphEff eff
 rectEff p1 p2 sf ctx = C.withContext ctx $ do
@@ -114,21 +109,22 @@ rectEff p1 p2 sf ctx = C.withContext ctx $ do
                  }
   pure unit
 
-rectPos :: Point -> Point -> GlyphPos
+rectPos :: Point -> Point -> ScaleFactor -> GlyphPos
 rectPos = linePos
 
 
-circle :: forall eff. Point -> Number -> Glyph eff
-circle p r = { glyphEff: circleEff p r
-             , glyphPos: circlePos p r
-             }
-
-circlePos :: Point -> Number -> GlyphPos
-circlePos p r = { min: \_ -> p.x - r
-                , max: \_ -> p.x + r
-                , minY: \_ -> p.y - r
-                , maxY: \_ -> p.y + r
+circle :: forall eff. Point -> Number -> ScaleFactor -> Glyph eff
+circle p r sf = { glyphEff: circleEff p r
+                , glyphPos: circlePos p r sf
                 }
+
+circlePos :: Point -> Number -> ScaleFactor -> GlyphPos
+circlePos p r sf = { min: \_ -> p'.x - r - 985.0 -- the clicks are measured in on-screen coordinates...
+                   , max: \_ -> p'.x + r - 985.0 -- and for some reason this is the correct offset.
+                   , minY: \_ -> p'.y - r
+                   , maxY: \_ -> p'.y + r
+                   }
+  where p' = worldToCanvas p sf
 
 circleEff :: forall eff. Point -> Number -> GlyphEff eff
 circleEff p r sf ctx = C.withContext ctx $ do
