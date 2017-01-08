@@ -7,7 +7,7 @@ module Biodalliance.Track
        , initialize
        , render
        , canvasContext
-       , setHeight
+       , prepareViewport
        , scaleFactor
        , features
        , Quant
@@ -48,9 +48,9 @@ foreign import render :: forall eff. Eff (canvas :: CANVAS
 foreign import canvasContext :: forall eff. Tier
                              -> Eff (tierEff :: TIEREFF | eff) Context2D
 
-foreign import setHeight :: forall eff. Tier
-                         -> Number
-                         -> Eff (tierEff :: TIEREFF | eff) Unit
+foreign import prepareViewport :: forall eff. Tier
+                               -> Number
+                               -> Eff (tierEff :: TIEREFF | eff) Unit
 
 foreign import features :: forall eff r. Tier
                         -> Eff (tierEff :: TIEREFF | eff) (Array (Feature r))

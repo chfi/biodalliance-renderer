@@ -34,7 +34,6 @@ type GlyphPos = { min :: Unit -> Number
 
 type GlyphEff eff = ScaleFactor -> Context2D -> Eff (canvas :: CANVAS | eff) Unit
 
--- type Glyph eff = { glyphEff :: ScaleFactor -> Context2D -> Eff (canvas :: CANVAS) Unit
 type Glyph eff = { glyphEff :: GlyphEff eff
                  , glyphPos :: GlyphPos
                  }
@@ -65,7 +64,7 @@ showPoint :: Point -> String
 showPoint p = "(" <> show p.x <> ", " <> show p.y <> ")"
 
 worldToCanvas :: Point -> ScaleFactor -> Point
-worldToCanvas p sf = { x: ((p.x - sf.viewStart) / sf.bpPerPixel) + 1000.0 -- the BD canvas is offset by 1000px
+worldToCanvas p sf = { x: ((p.x - sf.viewStart) / sf.bpPerPixel)
                     , y: sf.scaleY p.y  }
 
 
@@ -79,13 +78,13 @@ lineEff p1 p2 sf ctx = C.withContext ctx $ do
   let p1' = worldToCanvas p1 sf
       p2' = worldToCanvas p2 sf
   C.moveTo ctx p1'.x p1'.y
-  C.lineTo ctx p2'.x p2'.x
+  C.lineTo ctx p2'.x p2'.y
   C.stroke ctx
   pure unit
 
 linePos :: Point -> Point -> ScaleFactor -> GlyphPos
-linePos p1 p2 sf = { min: \_ -> Math.min (p1'.x - 985.0) (p2'.x - 985.0)
-                   , max: \_ -> Math.max (p1'.x - 985.0) (p2'.x - 985.0)
+linePos p1 p2 sf = { min: \_ -> Math.min p1'.x p2'.x
+                   , max: \_ -> Math.max p1'.x p2'.x
                    , minY: \_ -> Math.min p1'.y p2'.y
                    , maxY: \_ -> Math.max p1'.y p2'.y
                    }
@@ -104,7 +103,7 @@ rectEff p1 p2 sf ctx = C.withContext ctx $ do
       p2' = worldToCanvas p2 sf
   C.fillRect ctx { x: p1'.x
                  , y: p1'.y
-                 , w: p2'.y - p1'.y
+                 , w: p2'.x - p1'.x
                  , h: p2'.y - p1'.y
                  }
   pure unit
@@ -119,10 +118,10 @@ circle p r sf = { glyphEff: circleEff p r
                 }
 
 circlePos :: Point -> Number -> ScaleFactor -> GlyphPos
-circlePos p r sf = { min: \_ -> p'.x - r - 985.0 -- the clicks are measured in on-screen coordinates...
-                   , max: \_ -> p'.x + r - 985.0 -- and for some reason this is the correct offset.
-                   , minY: \_ -> p'.y - r
-                   , maxY: \_ -> p'.y + r
+circlePos p r sf = { min: \_ -> p'.x - (r * 1.5)
+                   , max: \_ -> p'.x + (r * 1.5)
+                   , minY: \_ -> p'.y - (r * 1.5)
+                   , maxY: \_ -> p'.y + (r * 1.5)
                    }
   where p' = worldToCanvas p sf
 

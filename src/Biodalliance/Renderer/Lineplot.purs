@@ -27,15 +27,15 @@ type LinePlotConfig = { minScore :: Number
 normalizeScore :: LinePlotConfig -> Number -> Number
 normalizeScore conf y = ((y - conf.minScore) / (conf.maxScore))
 
-linePlotGlyph :: forall eff. LinePlotConfig
-              -> Array LineFeature
-              -> Array (Glyph eff)
-linePlotGlyph conf fs = gs
-  where fToPoint f = { x: f.min, y: normalizeScore conf f.score }
-        gs = case tail fs of
-          Nothing -> []
-          Just fs' -> zipWith (\f1 f2 -> line (fToPoint f1) (fToPoint f2))
-                      fs fs'
+-- linePlotGlyph :: forall eff. LinePlotConfig
+--               -> Array LineFeature
+--               -> Array (Glyph eff)
+-- linePlotGlyph conf fs = gs
+--   where fToPoint f = { x: f.min, y: normalizeScore conf f.score }
+--         gs = case tail fs of
+--           Nothing -> []
+--           Just fs' -> zipWith (\f1 f2 -> line (fToPoint f1) (fToPoint f2))
+--                       fs fs'
 
 
 linePlotGlyph' :: forall eff. ScaleFactor
@@ -46,20 +46,20 @@ linePlotGlyph' sf conf fs = gs
   where fToPoint f = { x: f.min, y: normalizeScore conf f.score }
         gs = case tail fs of
           Nothing -> []
-          Just fs' -> zipWith (\f1 f2 -> { glyph: line (fToPoint f1) (fToPoint f2), feature: f1})
+          Just fs' -> zipWith (\f1 f2 -> { glyph: line (fToPoint f1) (fToPoint f2) sf, feature: f1})
                       fs fs'
 
 drawLinePlot :: forall eff. LinePlotConfig
              -> Tier
              -> Eff (canvas :: CANVAS, tierEff :: TIEREFF | eff) Unit
 drawLinePlot conf tier = do
-  Track.setHeight tier conf.canvasHeight
+  Track.prepareViewport tier conf.canvasHeight
   sf <- Track.scaleFactor tier linearScale
   ctx <- Track.canvasContext tier
   fs <- Track.features tier
   setStrokeStyle conf.color ctx
-  let glyphs = linePlotGlyph conf fs
-  Glyph.drawGlyphs glyphs sf ctx
+  let glyphs = linePlotGlyph' sf conf fs
+  Glyph.drawGlyphs (map (\g -> g.glyph) glyphs) sf ctx
 
 
 qtlPlotConfig :: LinePlotConfig

@@ -35,7 +35,7 @@ drawGwasPlot :: GWASConfig
              -> Eff (canvas :: CANVAS, tierEff :: TIEREFF) Unit
 drawGwasPlot config tier = do
   Track.initialize tier
-  Track.setHeight tier config.canvasHeight
+  Track.prepareViewport tier config.canvasHeight
   sf <- Track.scaleFactor tier logScale
   ctx <- Track.canvasContext tier
   fs <- Track.features tier
