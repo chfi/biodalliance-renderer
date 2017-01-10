@@ -24,6 +24,7 @@ import Graphics.Canvas (CANVAS, Context2D)
 import Graphics.Canvas as C
 import Math as Math
 
+import Biodalliance.Track (Feature)
 
 
 type GlyphPos = { min :: Unit -> Number
@@ -34,9 +35,12 @@ type GlyphPos = { min :: Unit -> Number
 
 type GlyphEff eff = ScaleFactor -> Context2D -> Eff (canvas :: CANVAS | eff) Unit
 
-type Glyph eff = { glyphEff :: GlyphEff eff
-                 , glyphPos :: GlyphPos
-                 }
+type Glyph r eff = { glyphEff :: GlyphEff eff
+                   , glyphPos :: GlyphPos
+                   , feature :: Feature r
+                   }
+
+
 
 drawGlyphs :: forall eff. Array (Glyph eff) -> GlyphEff eff
 drawGlyphs gs sf ctx = traverse_ (\g -> g.glyphEff sf ctx) gs
@@ -47,6 +51,7 @@ type ScaleFactor = { bpPerPixel :: Number
                    , canvasHeight :: Number
                    , scaleY :: VerticalScale
                    }
+
 
 
 type VerticalScale = Number -> Number
@@ -65,13 +70,31 @@ showPoint p = "(" <> show p.x <> ", " <> show p.y <> ")"
 
 worldToCanvas :: Point -> ScaleFactor -> Point
 worldToCanvas p sf = { x: ((p.x - sf.viewStart) / sf.bpPerPixel)
-                    , y: sf.scaleY p.y  }
+                     , y: sf.scaleY p.y  }
 
 
-line :: forall eff. Point -> Point -> ScaleFactor -> Glyph eff
-line p1 p2 sf = { glyphEff: lineEff p1 p2
-                , glyphPos: linePos p1 p2 sf
-                }
+line :: forall r eff.
+         Point -> Point
+      -> Feature r -> ScaleFactor -> Glyph eff
+line p1 p2 f sf = { glyphEff, glyphPos, feature: f }
+  where p1' = worldToCanvas p1 sf
+        p2' = worldToCanvas p2 sf
+
+        glyphEff ctx = C.withContext ctx $ do
+          C.moveTo ctx p1'.x p1'.y
+          C.lineTo ctx p2'.x p2'.y
+          C.stroke ctx
+          pure unit
+
+        glyphPos = rectanglePos p1' p2'
+
+
+
+line' :: forall r eff. Point -> Point -> Feature r -> ScaleFactor -> Glyph eff
+line' p1 p2 f sf = { glyphEff: lineEff p1 p2
+                   , glyphPos: linePos p1 p2 sf
+                   , feature: f
+                   }
 
 lineEff :: forall eff. Point -> Point -> GlyphEff eff
 lineEff p1 p2 sf ctx = C.withContext ctx $ do
@@ -81,6 +104,15 @@ lineEff p1 p2 sf ctx = C.withContext ctx $ do
   C.lineTo ctx p2'.x p2'.y
   C.stroke ctx
   pure unit
+
+
+rectanglePos :: Point -> Point -> GlyphPos
+rectanglePos p1 p2 = { min: \_ -> Math.min p1.x p2.x
+                     , max: \_ -> Math.max p1.x p2.x
+                     , minY: \_ -> Mat
+                     , maxY: \_ -> Math.max p1.y p2.y
+                     }
+
 
 linePos :: Point -> Point -> ScaleFactor -> GlyphPos
 linePos p1 p2 sf = { min: \_ -> Math.min p1'.x p2'.x
@@ -92,10 +124,26 @@ linePos p1 p2 sf = { min: \_ -> Math.min p1'.x p2'.x
         p2' = worldToCanvas p2 sf
 
 
-rect :: forall eff. Point -> Point -> ScaleFactor -> Glyph eff
-rect p1 p2 sf = { glyphEff: rectEff p1 p2
-                , glyphPos: rectPos p1 p2 sf
-                }
+rect :: forall r eff. Point -> Point -> Feature r-> ScaleFactor -> Glyph eff
+rect p1 p2 f sf = { glyphEff: rectEff p1 p2
+                  , glyphPos: rectPos p1 p2 sf
+                  , feature: f
+                  }
+
+rect' :: forall r eff. Point -> Point -> Feature r-> ScaleFactor -> Glyph eff
+rect' p1 p2 f sf = { glyphEff, glyphPos, feature: f }
+  where p1' = worldToCanvas p1 sf
+        p2' = worldToCanvas p2 sf
+
+        glyphEff ctx = C.withContext ctx $ do
+          C.fillRect ctx { x: p1'.x
+                        , y: p1'.y
+                        , w: p2'.x - p1'.x
+                        , h: p2'.y - p1'.y
+                        }
+          pure unit
+
+        glyphPos = rectanglePos p1' p2'
 
 rectEff :: forall eff. Point -> Point -> GlyphEff eff
 rectEff p1 p2 sf ctx = C.withContext ctx $ do
@@ -111,11 +159,6 @@ rectEff p1 p2 sf ctx = C.withContext ctx $ do
 rectPos :: Point -> Point -> ScaleFactor -> GlyphPos
 rectPos = linePos
 
-
-circle :: forall eff. Point -> Number -> ScaleFactor -> Glyph eff
-circle p r sf = { glyphEff: circleEff p r
-                , glyphPos: circlePos p r sf
-                }
 
 circlePos :: Point -> Number -> ScaleFactor -> GlyphPos
 circlePos p r sf = { min: \_ -> p'.x - (r * 1.5)
@@ -137,3 +180,30 @@ circleEff p r sf ctx = C.withContext ctx $ do
             }
   C.stroke ctx
   pure unit
+
+circle' :: forall r eff. Point -> Number -> Feature r -> ScaleFactor -> Glyph r eff
+circle' p r f sf = { glyphEff: circleEff p r
+                  , glyphPos: circlePos p r sf
+                  , feature: f
+                  }
+
+
+circle :: forall r eff. Point -> Number -> Feature r -> ScaleFactor -> Glyph r eff
+circle p r f sf = { glyphEff, glyphPos, feature: f }
+  where p' = worldToCanvas p sf
+        glyphEff ctx = C.withContext ctx $ do
+          C.beginPath ctx
+          C.arc ctx { x: p'.x
+                    , y: p'.y
+                    , r: r
+                    , start: 0.0
+                    , end: 2.0 * Math.pi
+                    }
+          C.stroke ctx
+          pure unit
+
+        glyphPos = { min: \_ -> p'.x - (r * 1.5)
+                   , max: \_ -> p'.x + (r * 1.5)
+                   , minY: \_ -> p'.y - (r * 1.5)
+                   , maxY: \_ -> p'.y + (r * 1.5)
+                   }

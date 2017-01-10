@@ -75,27 +75,10 @@ exports.setGlyphs = function(tier) {
     return function(glyphs) {
         return function() {
             glyphs.forEach(function(g) {
-                // console.log(g.glyphPos.min());
-                // console.log(g.glyphPos.max());
-                tier.subtiers[0].glyphs.push(g.glyphPos);
-            });
-            // console.log(tier.subtiers[0]);
-        };
-    };
-};
-
-
-
-exports.setGlyphs2 = function(tier) {
-    return function(glyphs) {
-        return function() {
-            glyphs.forEach(function(g) {
-                // console.log(g);
                 var glyph = g.glyph.glyphPos;
                 glyph.feature = g.feature;
                 tier.subtiers[0].glyphs.push(glyph);
             });
-            // console.log(tier.subtiers[0]);
         };
     };
 };

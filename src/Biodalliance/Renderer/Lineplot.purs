@@ -15,14 +15,22 @@ import Biodalliance.Glyph as Glyph
 import Biodalliance.Track (Tier, Feature, TIEREFF, Renderer)
 import Biodalliance.Track as Track
 
+import Biodalliance.Renderer (RendererConfig)
+
 
 type LineFeature = Feature (score :: Number)
 
-type LinePlotConfig = { minScore :: Number
-                      , maxScore :: Number
-                      , canvasHeight :: Number
-                      , color :: String
-                      }
+-- type LinePlotConfig = { minScore :: Number
+--                       , maxScore :: Number
+--                       , canvasHeight :: Number
+--                       , color :: String
+--                       }
+
+type LinePlotConfig =
+  RendererConfig { minScore :: Number
+                 , maxScore :: Number
+                 , color :: String
+                 }
 
 normalizeScore :: LinePlotConfig -> Number -> Number
 normalizeScore conf y = ((y - conf.minScore) / (conf.maxScore))

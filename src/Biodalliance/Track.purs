@@ -13,7 +13,6 @@ module Biodalliance.Track
        , Quant
        , setQuant
        , setGlyphs
-       , setGlyphs2
        ) where
 
 
@@ -24,7 +23,6 @@ import Data.Function.Uncurried (Fn2)
 import Graphics.Canvas (CANVAS, Context2D)
 
 import Biodalliance.Glyph (ScaleFactor, VerticalScale, Glyph)
--- import Biodalliance.Renderer (RenderTrack)
 
 foreign import data RenderTrack :: *
 
@@ -62,9 +60,7 @@ foreign import scaleFactor :: forall eff. Tier
 foreign import setQuant :: forall eff. Tier -> Quant -> Eff (tierEff :: TIEREFF | eff) Unit
 
 
-foreign import setGlyphs :: forall eff1 eff2. Tier -> Array (Glyph eff1) -> Eff (tierEff :: TIEREFF | eff2) Unit
-
-foreign import setGlyphs2 :: forall eff1 eff2 r.
-                             Tier
-                          -> Array ({glyph :: Glyph eff1, feature :: Feature r})
-                          -> Eff (tierEff :: TIEREFF | eff2) Unit
+foreign import setGlyphs :: forall eff1 eff2 r.
+                            Tier
+                         -> Array ({glyph :: Glyph eff1, feature :: Feature r})
+                         -> Eff (tierEff :: TIEREFF | eff2) Unit
