@@ -1,14 +1,13 @@
 module Biodalliance.Track
        ( Tier
-       , Feature(..)
        , TIEREFF
+       , hCoordTransform
        , RenderTrack
        , Renderer
-       , initialize
        , render
+       , initialize
        , canvasContext
        , prepareViewport
-       , scaleFactor
        , features
        , Quant
        , setQuant
@@ -22,11 +21,11 @@ import Control.Monad.Eff (Eff)
 import Data.Function.Uncurried (Fn2)
 import Graphics.Canvas (CANVAS, Context2D)
 
-import Biodalliance.Glyph (ScaleFactor, VerticalScale, Glyph)
+import Biodalliance.Glyph (Glyph, Feature)
+import Biodalliance.Coordinates (HCoordTransform)
 
 foreign import data RenderTrack :: *
 
-type Feature r = { min :: Number, max :: Number | r }
 
 type Renderer = { renderTier :: Fn2 String Tier RenderTrack
                 , drawTier :: Tier -> RenderTrack
@@ -39,7 +38,7 @@ foreign import data TIEREFF :: !
 
 foreign import initialize :: forall eff. Tier -> Eff (tierEff :: TIEREFF | eff) Unit
 
-foreign import render :: forall eff. Eff (canvas :: CANVAS
+foreign import render :: forall eff. Eff ( canvas :: CANVAS
                                          , tierEff :: TIEREFF | eff) Unit
                       -> RenderTrack
 
@@ -53,14 +52,17 @@ foreign import prepareViewport :: forall eff. Tier
 foreign import features :: forall eff r. Tier
                         -> Eff (tierEff :: TIEREFF | eff) (Array (Feature r))
 
-foreign import scaleFactor :: forall eff. Tier
-                           -> (Number -> VerticalScale)
-                           -> Eff (tierEff :: TIEREFF | eff) ScaleFactor
 
-foreign import setQuant :: forall eff. Tier -> Quant -> Eff (tierEff :: TIEREFF | eff) Unit
+foreign import hCoordTransform :: forall eff. Tier
+                               -> Eff (tierEff :: TIEREFF | eff) HCoordTransform
 
 
-foreign import setGlyphs :: forall eff1 eff2 r.
+foreign import setQuant :: forall eff. Tier
+                        -> Quant
+                        -> Eff (tierEff :: TIEREFF | eff) Unit
+
+
+foreign import setGlyphs :: forall r eff1 eff2.
                             Tier
-                         -> Array ({glyph :: Glyph eff1, feature :: Feature r})
+                         -> Array (Glyph r eff1)
                          -> Eff (tierEff :: TIEREFF | eff2) Unit

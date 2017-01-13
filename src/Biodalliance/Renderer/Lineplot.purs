@@ -10,70 +10,62 @@ import Data.Function.Uncurried (mkFn2)
 import Data.Maybe (Maybe(..))
 import Graphics.Canvas (CANVAS, setStrokeStyle)
 
-import Biodalliance.Glyph (Glyph, line, linearScale, ScaleFactor)
+import Biodalliance.Glyph (Glyph, Feature)
 import Biodalliance.Glyph as Glyph
-import Biodalliance.Track (Tier, Feature, TIEREFF, Renderer)
+import Biodalliance.Track (Tier, TIEREFF, Renderer)
 import Biodalliance.Track as Track
 
-import Biodalliance.Renderer (RendererConfig)
+import Biodalliance.Coordinates (linearScale, CoordTransform)
+
+import Biodalliance.Renderer (RendererConfig, trackCoordTransform)
 
 
-type LineFeature = Feature (score :: Number)
+type LineRow = (score :: Number)
+type LineFeature = Feature LineRow
+type LineGlyph eff = Glyph LineRow eff
 
--- type LinePlotConfig = { minScore :: Number
---                       , maxScore :: Number
---                       , canvasHeight :: Number
---                       , color :: String
---                       }
 
 type LinePlotConfig =
-  RendererConfig { minScore :: Number
+  RendererConfig ( minScore :: Number
                  , maxScore :: Number
                  , color :: String
-                 }
+                 )
 
 normalizeScore :: LinePlotConfig -> Number -> Number
 normalizeScore conf y = ((y - conf.minScore) / (conf.maxScore))
 
--- linePlotGlyph :: forall eff. LinePlotConfig
---               -> Array LineFeature
---               -> Array (Glyph eff)
--- linePlotGlyph conf fs = gs
---   where fToPoint f = { x: f.min, y: normalizeScore conf f.score }
---         gs = case tail fs of
---           Nothing -> []
---           Just fs' -> zipWith (\f1 f2 -> line (fToPoint f1) (fToPoint f2))
---                       fs fs'
 
-
-linePlotGlyph' :: forall eff. ScaleFactor
+linePlotGlyph :: forall eff. CoordTransform
                -> LinePlotConfig
                -> Array LineFeature
-               -> Array ({ glyph :: Glyph eff, feature :: LineFeature })
-linePlotGlyph' sf conf fs = gs
+               -> Array (LineGlyph eff)
+linePlotGlyph ct conf fs = gs
   where fToPoint f = { x: f.min, y: normalizeScore conf f.score }
         gs = case tail fs of
           Nothing -> []
-          Just fs' -> zipWith (\f1 f2 -> { glyph: line (fToPoint f1) (fToPoint f2) sf, feature: f1})
+          Just fs' -> zipWith (\f1 f2 -> Glyph.line (fToPoint f1) (fToPoint f2) ct f1)
                       fs fs'
+
 
 drawLinePlot :: forall eff. LinePlotConfig
              -> Tier
              -> Eff (canvas :: CANVAS, tierEff :: TIEREFF | eff) Unit
-drawLinePlot conf tier = do
-  Track.prepareViewport tier conf.canvasHeight
-  sf <- Track.scaleFactor tier linearScale
+drawLinePlot config tier = do
+  Track.prepareViewport tier config.canvasHeight
+  ct <- trackCoordTransform config linearScale tier
   ctx <- Track.canvasContext tier
   fs <- Track.features tier
-  setStrokeStyle conf.color ctx
-  let glyphs = linePlotGlyph' sf conf fs
-  Glyph.drawGlyphs (map (\g -> g.glyph) glyphs) sf ctx
+  setStrokeStyle config.color ctx
+  let glyphs = linePlotGlyph ct config fs
+  Track.setGlyphs tier glyphs
+  Glyph.drawGlyphs glyphs ctx
 
 
 qtlPlotConfig :: LinePlotConfig
 qtlPlotConfig = { minScore: 3.0
                 , maxScore: 5.0
                 , canvasHeight: 400.0
+                , yOffset: 0.0
                 , color: "#dd0000"}
 
 

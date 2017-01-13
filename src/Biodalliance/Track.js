@@ -4,7 +4,6 @@ exports.initialize = function(tier) {
         tier.padding = 3;
         tier.scaleVertical = false; // set in default-renderer:427, used by feature-draw:paintToContext
 
-
         // create subtiers
         tier.subtiers = [];
         tier.subtiers[0] = { glyphs: [] };
@@ -43,16 +42,12 @@ exports.features = function(tier) {
     };
 };
 
-exports.scaleFactor = function(tier) {
-    return function(scaleY) {
-        return function() {
-            var sf = { bpPerPixel: 1/tier.browser.scale,
-                       viewStart: tier.browser.viewStart,
-                       canvasHeight: tier.viewport.height,
-                       scaleY: scaleY(tier.viewport.height)
-                     };
-            return sf;
-        };
+exports.hCoordTransform = function(tier) {
+    return function() {
+        var hCT = { bpPerPixel: 1/tier.browser.scale,
+                    viewStart: tier.browser.viewStart
+                  };
+        return hCT;
     };
 };
 
@@ -75,7 +70,10 @@ exports.setGlyphs = function(tier) {
     return function(glyphs) {
         return function() {
             glyphs.forEach(function(g) {
-                var glyph = g.glyph.glyphPos;
+                var glyph = {};
+                for (var f in g.position) {
+                    glyph[f] = g.position[f];
+                }
                 glyph.feature = g.feature;
                 tier.subtiers[0].glyphs.push(glyph);
             });

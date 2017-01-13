@@ -1,25 +1,33 @@
 module Biodalliance.Renderer
        ( RendererConfig
+       , trackCoordTransform
        ) where
 
 import Prelude
 
+import Control.Monad.Eff (Eff)
+
+import Biodalliance.Coordinates (CoordTransform, VerticalScale)
+
+import Biodalliance.Track as Track
+import Biodalliance.Track (Tier, TIEREFF)
+
+
 type RendererConfig c = { canvasHeight :: Number
                         , yOffset :: Number | c }
 
+-- TODO: this is a bad place for this function to be,
+-- but it can't go in BD.Coordinates due to
+-- dependencies (and that module should be entirely pure)
+trackCoordTransform :: forall c eff. RendererConfig c
+               -> VerticalScale
+               -> Tier
+               -> Eff (tierEff :: TIEREFF | eff) CoordTransform
+trackCoordTransform rc vs t = do
+  hct <- Track.hCoordTransform t
+  let vct = { yOffset: rc.yOffset
+            , canvasHeight: rc.canvasHeight
+            , scaleY: vs
+            }
 
-drawPlot :: forall c f eff.
-            (Array (Feature f) -> Array ({ glyph :: Glyph eff, feature :: Feature f }))
-         -> RendererConfig c
-         -> VerticalScale
-         -> Tier
-         -> Eff (canvas :: CANVAS, tierEff :: TIEREFF) Unit
-drawPlot glyphF scale config tier = do
-  Track.initialize tier
-  Track.prepareViewport config.canvasHeight
-  sf <- Track.scaleFactor tier scale
-  ctx <- Track.canvasContext tier
-  fs <- Track.features tier
-  let glyphs = glyphF sf fs
-  Track.setGlyphs tier glyphs
-  Glyph.drawGlyphs
+  pure { h: hct, v: vct }
