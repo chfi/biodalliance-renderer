@@ -1,23 +1,17 @@
 module Biodalliance.Renderer.Lineplot
-       ( createRenderer
-       ) where
+       where
 
 import Prelude
 
-import Control.Monad.Eff (Eff)
 import Data.Array (tail, zipWith)
-import Data.Function.Uncurried (mkFn2)
 import Data.Maybe (Maybe(..))
-import Graphics.Canvas (CANVAS, setStrokeStyle)
 
 import Biodalliance.Glyph (Glyph, Feature)
 import Biodalliance.Glyph as Glyph
-import Biodalliance.Track (Tier, TIEREFF, Renderer)
-import Biodalliance.Track as Track
 
-import Biodalliance.Coordinates (linearScale, CoordTransform)
+import Biodalliance.Coordinates (CoordTransform)
 
-import Biodalliance.Renderer (RendererConfig, trackCoordTransform)
+import Biodalliance.Renderer (RendererConfig)
 
 
 type LineRow = (score :: Number)
@@ -46,19 +40,18 @@ linePlotGlyph ct conf fs = gs
           Just fs' -> zipWith (\f1 f2 -> Glyph.line (fToPoint f1) (fToPoint f2) ct f1)
                       fs fs'
 
+type View = { viewStart :: Number
+            , scale :: Number
+            }
 
-drawLinePlot :: forall eff. LinePlotConfig
-             -> Tier
-             -> Eff (canvas :: CANVAS, tierEff :: TIEREFF | eff) Unit
-drawLinePlot config tier = do
-  Track.prepareViewport tier config.canvasHeight
-  ct <- trackCoordTransform config linearScale tier
-  ctx <- Track.canvasContext tier
-  fs <- Track.features tier
-  setStrokeStyle config.color ctx
-  let glyphs = linePlotGlyph ct config fs
-  Track.setGlyphs tier glyphs
-  Glyph.drawGlyphs glyphs ctx
+glyphifyFeatures :: forall eff.
+                    View
+                 -> Array (LineFeature)
+                 -> Array (LineGlyph eff)
+glyphifyFeatures v fs = linePlotGlyph ct qtlPlotConfig fs
+  where ct = { h: { scale: v.scale, viewStart: v.viewStart }
+             , v: { height: 300.0 }
+             }
 
 
 qtlPlotConfig :: LinePlotConfig
@@ -67,11 +60,3 @@ qtlPlotConfig = { minScore: 3.0
                 , canvasHeight: 400.0
                 , yOffset: 0.0
                 , color: "#dd0000"}
-
-
-createRenderer :: LinePlotConfig -> Renderer
-createRenderer config = { renderTier
-                        , drawTier
-                        }
-  where drawTier = Track.render <<< drawLinePlot config
-        renderTier = mkFn2 \status tier -> drawTier tier
