@@ -11,21 +11,20 @@ module Biodalliance.Coordinates
 
 import Prelude
 
-import Control.Monad.Eff (Eff)
-
 import Math as Math
 
 type Point = { x :: Number, y :: Number}
 type VerticalScale = Number -> Number
 
-type HCoordTransform = { bpPerPixel :: Number
+type HCoordTransform = { scale :: Number
                        , viewStart :: Number
                        }
 
-type VCoordTransform = { yOffset :: Number
-                       , canvasHeight :: Number
-                       , scaleY :: VerticalScale
+type VCoordTransform = { height :: Number
+                       -- , scaleY :: VerticalScale
                        }
+
+type VShift = Number -> Number
 
 type CoordTransform = { h :: HCoordTransform
                       , v :: VCoordTransform
@@ -38,7 +37,8 @@ linearScale y = y
 logScale :: VerticalScale
 logScale y = (Math.log y / Math.ln10)
 
+             -- y-coordinates are increasing upward
 worldToCanvas :: Point -> CoordTransform -> Point
 worldToCanvas p ct = { x, y }
-  where x = (p.x - ct.h.viewStart) / ct.h.bpPerPixel
-        y = ct.v.yOffset + (ct.v.scaleY p.y) * ct.v.canvasHeight
+  where x = (p.x - ct.h.viewStart) * ct.h.scale
+        y = ct.v.height - p.y * ct.v.height
