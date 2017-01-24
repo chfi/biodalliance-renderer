@@ -3,8 +3,6 @@ module Biodalliance.Glyph
        , Feature
        , GlyphDraw
        , Subtier
-       -- , sequenceGlyphEffects
-       -- , subtierGlyphs
        , line
        -- , rect
        , circle
@@ -12,11 +10,9 @@ module Biodalliance.Glyph
 
 import Prelude
 
-import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Unsafe (unsafePerformEff)
 
-import Data.Traversable (traverse_)
-import Graphics.Canvas (CANVAS, Context2D)
+import Graphics.Canvas (Context2D)
 import Graphics.Canvas as C
 import Math as Math
 
@@ -90,22 +86,22 @@ line p1 p2 ct f = combineGlyph draw pos f
         pos = rectanglePos p1' p2'
 
 
--- rect :: forall r eff.
---         Point -> Point
---      -> CoordTransform -> Feature r -> Glyph r eff
--- rect p1 p2 ct f = combineGlyph draw pos f
---   where p1' = worldToCanvas p1 ct
---         p2' = worldToCanvas p2 ct
+rect :: forall r eff.
+        Point -> Point
+     -> CoordTransform -> Feature r -> Glyph r eff
+rect p1 p2 ct f = combineGlyph draw pos f
+  where p1' = worldToCanvas p1 ct
+        p2' = worldToCanvas p2 ct
 
---         draw ctx = C.withContext ctx $ do
---           C.fillRect ctx { x: p1'.x
---                          , y: p1'.y
---                          , w: p2'.x - p1'.x
---                          , h: p2'.y - p1'.y
---                          }
---           pure unit
+        draw ctx = unsafePerformEff $ C.withContext ctx $ do
+          C.fillRect ctx { x: p1'.x
+                         , y: p1'.y
+                         , w: p2'.x - p1'.x
+                         , h: p2'.y - p1'.y
+                         }
+          pure unit
 
---         pos = rectanglePos p1' p2'
+        pos = rectanglePos p1' p2'
 
 
 circle :: forall r eff. Point -> Number -> CoordTransform -> Feature r -> Glyph r eff
