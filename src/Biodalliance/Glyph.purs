@@ -1,7 +1,10 @@
 module Biodalliance.Glyph
        ( Glyph
        , Feature
-       , drawGlyphs
+       , GlyphDraw
+       , Subtier
+       -- , sequenceGlyphEffects
+       -- , subtierGlyphs
        , line
        -- , rect
        , circle
@@ -10,6 +13,8 @@ module Biodalliance.Glyph
 import Prelude
 
 import Control.Monad.Eff (Eff)
+import Control.Monad.Eff.Unsafe (unsafePerformEff)
+
 import Data.Traversable (traverse_)
 import Graphics.Canvas (CANVAS, Context2D)
 import Graphics.Canvas as C
@@ -28,17 +33,28 @@ type GlyphPosition = { min :: Unit -> Number
                      , maxY :: Unit -> Number
                      }
 
-type GlyphCanvasEffect eff = Context2D -> Eff (canvas :: CANVAS | eff) Unit
 
-newtype Glyph r eff = Glyph { position :: GlyphPosition
-                            , canvasEffect :: GlyphCanvasEffect eff
-                            , feature :: Feature r
-                            }
+-- TODO: this function is unsafe, and so doesn't really need the `eff`, but...
+-- should be a better way of solving this I think
+type GlyphDraw eff = Context2D -> Unit
+-- type GlyphDraw eff = Context2D -> Eff (canvas :: CANVAS | eff) Unit
 
 
-drawGlyphs :: forall r eff. Array (Glyph r eff) -> GlyphCanvasEffect eff
-drawGlyphs gs ctx = traverse_ (\ (Glyph g) -> g.canvasEffect ctx) gs
+type Subtier r eff = { glyphs :: Array (Glyph r eff)
+                     , height :: Number
+                     }
 
+-- should have a toSVG function, too...
+type Glyph r eff = { draw :: GlyphDraw eff
+                   , min :: Unit -> Number
+                   , max :: Unit -> Number
+                   , minY :: Unit -> Number
+                   , maxY :: Unit -> Number
+                   , feature :: Feature r
+                   }
+
+-- sequenceGlyphEffects :: forall r eff. Array (Glyph r eff) -> GlyphCanvasEffect eff
+-- sequenceGlyphEffects gs ctx = traverse_ (\ (Glyph g) -> g.canvasEffect ctx) gs
 
 rectanglePos :: Point -> Point -> GlyphPosition
 rectanglePos p1 p2 = { min: \_ -> Math.min p1.x p2.x
@@ -48,45 +64,55 @@ rectanglePos p1 p2 = { min: \_ -> Math.min p1.x p2.x
                      }
 
 
+combineGlyph :: forall r eff. GlyphDraw eff -> GlyphPosition -> Feature r -> Glyph r eff
+combineGlyph c p f = { draw: c
+                     , min: p.min
+                     , max: p.max
+                     , minY: p.minY
+                     , maxY: p.maxY
+                     , feature: f
+                     }
+
+
 line :: forall r eff.
         Point -> Point
      -> CoordTransform -> Feature r -> Glyph r eff
-line p1 p2 ct f = Glyph { canvasEffect, position, feature: f }
+line p1 p2 ct f = combineGlyph draw pos f
   where p1' = worldToCanvas p1 ct
         p2' = worldToCanvas p2 ct
 
-        canvasEffect ctx = C.withContext ctx $ do
+        draw ctx = unsafePerformEff $ C.withContext ctx $ do
           C.moveTo ctx p1'.x p1'.y
           C.lineTo ctx p2'.x p2'.y
           C.stroke ctx
           pure unit
 
-        position = rectanglePos p1' p2'
+        pos = rectanglePos p1' p2'
 
 
-rect :: forall r eff.
-        Point -> Point
-     -> CoordTransform -> Feature r -> Glyph r eff
-rect p1 p2 ct f = Glyph { canvasEffect, position, feature: f }
-  where p1' = worldToCanvas p1 ct
-        p2' = worldToCanvas p2 ct
+-- rect :: forall r eff.
+--         Point -> Point
+--      -> CoordTransform -> Feature r -> Glyph r eff
+-- rect p1 p2 ct f = combineGlyph draw pos f
+--   where p1' = worldToCanvas p1 ct
+--         p2' = worldToCanvas p2 ct
 
-        canvasEffect ctx = C.withContext ctx $ do
-          C.fillRect ctx { x: p1'.x
-                         , y: p1'.y
-                         , w: p2'.x - p1'.x
-                         , h: p2'.y - p1'.y
-                         }
-          pure unit
+--         draw ctx = C.withContext ctx $ do
+--           C.fillRect ctx { x: p1'.x
+--                          , y: p1'.y
+--                          , w: p2'.x - p1'.x
+--                          , h: p2'.y - p1'.y
+--                          }
+--           pure unit
 
-        position = rectanglePos p1' p2'
+--         pos = rectanglePos p1' p2'
 
 
 circle :: forall r eff. Point -> Number -> CoordTransform -> Feature r -> Glyph r eff
-circle p r ct f = Glyph { canvasEffect, position, feature: f }
+circle p r ct f = combineGlyph draw pos f
   where p' = worldToCanvas p ct
 
-        canvasEffect ctx = C.withContext ctx $ do
+        draw ctx = unsafePerformEff $ C.withContext ctx $ do
           C.beginPath ctx
           C.arc ctx { x: p'.x
                     , y: p'.y
@@ -97,8 +123,8 @@ circle p r ct f = Glyph { canvasEffect, position, feature: f }
           C.stroke ctx
           pure unit
 
-        position = { min: \_ -> p'.x - (r * 1.5)
-                   , max: \_ -> p'.x + (r * 1.5)
-                   , minY: \_ -> p'.y - (r * 1.5)
-                   , maxY: \_ -> p'.y + (r * 1.5)
-                   }
+        pos = { min: \_ -> p'.x - (r * 1.5)
+              , max: \_ -> p'.x + (r * 1.5)
+              , minY: \_ -> p'.y - (r * 1.5)
+              , maxY: \_ -> p'.y + (r * 1.5)
+              }
