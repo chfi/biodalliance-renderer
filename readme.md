@@ -16,6 +16,12 @@ Build a bundle for the renderer you want, like this:
 pulp build --main Biodalliance.Renderer.GWAS --skip-entry-point --to ./psRenderer.js
 ```
 
+If you want to bundle several renderers into one, build the Biodalliance module,
+which re-exports the relevant functions:
+```shell
+pulp build --main Biodalliance --skip-entry-point --to ./psRenderer.js
+```
+
 Then, in the file with the BioDalliance browser configuration, add the renderer script,
 before the code that defines the browser, and add the renderer to the configuration:
 
@@ -26,13 +32,34 @@ before the code that defines the browser, and add the renderer to the configurat
 
 <script language="javascript">
 
-var PSRenderer = PS["Biodalliance.Renderer"];
+var gwasRenderer = WrappedRenderer.wrapRenderer(
+    PS["Biodalliance"].gwasGlyphify, 300.0, 0.0);
+
+var qtlRenderer = WrappedRenderer.wrapRenderer(
+    PS["Biodalliance"].qtlGlyphify, 300.0, 0.0);
 
 var b = new Browser({
-    renderers: { psrenderer: PSRenderer },
+
+    externalRenderers: { gwasRenderer: gwasRenderer,
+                        qtlRenderer: qtlRenderer},
+
     .. /* rest of config */
 })
 ```
 
 The renderer can then be used in some or all tracks, by setting the `renderer` option
 to `'psrenderer'` in the tier config or the browser config, respectively.
+
+
+# Renderers
+A Renderer needs to implement one single function: glyphifyFeatures:
+```purescript
+type View = { viewStart :: Number, scale :: Number }
+
+glyphifyFeatures :: forall r eff. View -> Array (Feature r) -> Array (Glyph r eff)
+```
+
+Look at Biodalliance.Renderer.GWAS for an example.
+
+The coordinate system used is relative and normalized to features, horizontally,
+and the canvas, vertically.
