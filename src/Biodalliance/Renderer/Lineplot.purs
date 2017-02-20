@@ -29,7 +29,7 @@ normalizeScore :: LinePlotConfig -> Number -> Number
 normalizeScore conf y = ((y - conf.minScore) / (conf.maxScore))
 
 
-linePlotGlyph :: forall eff. CoordTransform
+linePlotGlyph :: ∀ eff. CoordTransform
                -> LinePlotConfig
                -> Array LineFeature
                -> Array (LineGlyph eff)
@@ -44,7 +44,7 @@ type View = { viewStart :: Number
             , scale :: Number
             }
 
-glyphifyFeatures :: forall eff.
+glyphifyFeatures :: ∀ eff.
                     View
                  -> Array (LineFeature)
                  -> Array (LineGlyph eff)

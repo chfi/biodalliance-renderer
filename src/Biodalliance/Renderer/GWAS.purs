@@ -30,12 +30,12 @@ type GWASGlyph eff = Glyph GWASRow eff
 
 type GWASConfig = RendererConfig ()
 
-gwasGlyph :: forall eff. CoordTransform -> Number -> Number -> GWASFeature -> GWASGlyph eff
+gwasGlyph :: ∀ eff. CoordTransform -> Number -> Number -> GWASFeature -> GWASGlyph eff
 gwasGlyph ct min max f = Glyph.circle { x: f.min, y: (f.score / max) } 3.0 ct f
 
 
                  -- TODO: need to get the min/max values in here so we can y-scale properly
-gwasPlotGlyphs :: forall eff. CoordTransform -> Array GWASFeature -> Array (GWASGlyph eff)
+gwasPlotGlyphs :: ∀ eff. CoordTransform -> Array GWASFeature -> Array (GWASGlyph eff)
 gwasPlotGlyphs ct fs = map (gwasGlyph ct min max) fs
   where min = fromMaybe 0.0 $ _.score <$> minimumBy ord fs
         max = fromMaybe 0.0 $ _.score <$> maximumBy ord fs
@@ -46,7 +46,7 @@ type View = { viewStart :: Number
             , scale :: Number
             }
 
-glyphifyFeatures :: forall eff.
+glyphifyFeatures :: ∀ eff.
                     View
                  -> Array (GWASFeature)
                  -> Array (GWASGlyph eff)

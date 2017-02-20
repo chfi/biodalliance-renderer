@@ -49,8 +49,6 @@ type Glyph r eff = { draw :: GlyphDraw eff
                    , feature :: Feature r
                    }
 
--- sequenceGlyphEffects :: forall r eff. Array (Glyph r eff) -> GlyphCanvasEffect eff
--- sequenceGlyphEffects gs ctx = traverse_ (\ (Glyph g) -> g.canvasEffect ctx) gs
 
 rectanglePos :: Point -> Point -> GlyphPosition
 rectanglePos p1 p2 = { min: \_ -> Math.min p1.x p2.x
@@ -60,7 +58,7 @@ rectanglePos p1 p2 = { min: \_ -> Math.min p1.x p2.x
                      }
 
 
-combineGlyph :: forall r eff. GlyphDraw eff -> GlyphPosition -> Feature r -> Glyph r eff
+combineGlyph :: ∀ r eff. GlyphDraw eff -> GlyphPosition -> Feature r -> Glyph r eff
 combineGlyph c p f = { draw: c
                      , min: p.min
                      , max: p.max
@@ -70,7 +68,7 @@ combineGlyph c p f = { draw: c
                      }
 
 
-line :: forall r eff.
+line :: ∀ r eff.
         Point -> Point
      -> CoordTransform -> Feature r -> Glyph r eff
 line p1 p2 ct f = combineGlyph draw pos f
@@ -86,7 +84,7 @@ line p1 p2 ct f = combineGlyph draw pos f
         pos = rectanglePos p1' p2'
 
 
-rect :: forall r eff.
+rect :: ∀ r eff.
         Point -> Point
      -> CoordTransform -> Feature r -> Glyph r eff
 rect p1 p2 ct f = combineGlyph draw pos f
@@ -104,7 +102,7 @@ rect p1 p2 ct f = combineGlyph draw pos f
         pos = rectanglePos p1' p2'
 
 
-circle :: forall r eff. Point -> Number -> CoordTransform -> Feature r -> Glyph r eff
+circle :: ∀ r eff. Point -> Number -> CoordTransform -> Feature r -> Glyph r eff
 circle p r ct f = combineGlyph draw pos f
   where p' = worldToCanvas p ct
 
