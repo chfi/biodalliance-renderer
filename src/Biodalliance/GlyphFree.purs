@@ -13,9 +13,9 @@ import Control.Monad.Eff.Console (CONSOLE, log)
 import Graphics.Canvas (Context2D, CANVAS)
 import Graphics.Canvas as C
 
+import Test.QuickCheck
 
 import Data.Foreign (Prop(..), toForeign, writeObject, Foreign)
-import Data.Foreign.Class (class AsForeign)
 
 import Data.Newtype (class Newtype, unwrap)
 
@@ -59,45 +59,54 @@ fill :: String -> Glyph Unit
 fill c = liftF $ Fill c unit
 
 
-newtype GlyphPosition = GlyphPos { min :: Unit -> Number
-                                 , max :: Unit -> Number
-                                 , minY :: Unit -> Number
-                                 , maxY :: Unit -> Number
+newtype GlyphPosition = GlyphPos { min :: Number
+                                 , max :: Number
+                                 , minY :: Number
+                                 , maxY :: Number
                                  }
 
 derive instance genericGlyphPosition :: Generic GlyphPosition _
 derive instance newtypeGlyphPosition :: Newtype GlyphPosition _
+derive instance eqGlyphPosition :: Eq GlyphPosition
+
+instance arbitraryGlyphPosition :: Arbitrary GlyphPosition where
+  arbitrary = do
+    a <- arbitrary
+    b <- arbitrary
+    c <- arbitrary
+    d <- arbitrary
+    pure $ GlyphPos { min: a, max: b, minY: c, maxY: d }
 
 instance showGlyphPosition :: Show GlyphPosition where
-  show (GlyphPos (gp)) = "{ min: " <> show (gp.min unit) <>
-                         ", max: " <> show (gp.max unit) <>
-                         ", minY: " <> show (gp.minY unit) <>
-                         ", maxY: " <> show (gp.maxY unit) <>
+  show (GlyphPos (gp)) = "{ min: " <> show (gp.min ) <>
+                         ", max: " <> show (gp.max ) <>
+                         ", minY: " <> show (gp.minY ) <>
+                         ", maxY: " <> show (gp.maxY ) <>
                          " }"
 
 
 instance semigroupGlyphPosition :: Semigroup GlyphPosition where
   append (GlyphPos (p1)) (GlyphPos (p2)) =
-    GlyphPos ({ min: const $ min (p1.min unit) (p2.min unit)
-              , max: const $ max (p1.max unit) (p2.max unit)
-              , minY: const $ min (p1.minY unit) (p2.minY unit)
-              , maxY: const $ max (p1.maxY unit) (p2.maxY unit)
+    GlyphPos ({ min: Math.min (p1.min ) (p2.min )
+              , max: Math.max (p1.max ) (p2.max )
+              , minY: Math.min (p1.minY ) (p2.minY )
+              , maxY: Math.max (p1.maxY ) (p2.maxY )
               })
 
 
 instance monoidGlyphPosition :: Monoid GlyphPosition where
-  mempty = GlyphPos { min: const infinity
-                    , max: const (-infinity)
-                    , minY: const infinity
-                    , maxY: const (-infinity)
+  mempty = GlyphPos { min: infinity
+                    , max: (-infinity)
+                    , minY: infinity
+                    , maxY: (-infinity)
                     }
 
 
 rectanglePos :: Point -> Point -> GlyphPosition
-rectanglePos p1 p2 = GlyphPos ({ min: const $ Math.min p1.x p2.x
-                               , max: const $ Math.max p1.x p2.x
-                               , minY: const $ Math.min p1.y p2.y
-                               , maxY: const $ Math.max p1.y p2.y
+rectanglePos p1 p2 = GlyphPos ({ min: Math.min p1.x p2.x
+                               , max: Math.max p1.x p2.x
+                               , minY: Math.min p1.y p2.y
+                               , maxY: Math.max p1.y p2.y
                                })
 
 
@@ -106,10 +115,10 @@ glyphPosN :: GlyphF ~> Writer GlyphPosition
 glyphPosN (Stroke _ a) = pure a
 glyphPosN (Fill _ a) = pure a
 glyphPosN (Circle p r a) = do
-  tell (GlyphPos { min: \_ -> p.x - (r * 1.5)
-                 , max: \_ -> p.x + (r * 1.5)
-                 , minY: \_ -> p.y - (r * 1.5)
-                 , maxY: \_ -> p.y + (r * 1.5)
+  tell (GlyphPos { min: p.x - (r * 1.5)
+                 , max: p.x + (r * 1.5)
+                 , minY: p.y - (r * 1.5)
+                 , maxY: p.y + (r * 1.5)
                  })
   pure a
 glyphPosN (Line p1 p2 a) = do
@@ -207,17 +216,12 @@ glyphLogEffN (Rect p1 p2 a) = do
   pure a
 
 
-newtype BDGlyph a r = BDGlyph { glyph :: Glyph a
-                              , feature :: Feature r
-                              }
-
-
 writeGlyph :: ∀ a r. Feature r -> Glyph a -> Foreign
 writeGlyph f g = writeObject [ unsafeProp "draw" $ unsafePerformEff <<< d
-                             , unsafeProp "min" $ p.min
-                             , unsafeProp "max" $ p.max
-                             , unsafeProp "minY" $ p.minY
-                             , unsafeProp "maxY" $ p.max
+                             , unsafeProp "min" $ const p.min
+                             , unsafeProp "max" $ const p.max
+                             , unsafeProp "minY" $ const p.minY
+                             , unsafeProp "maxY" $ const p.max
                              , unsafeProp "feature" f
                              ]
     where p = unwrap $ (execWriter <<< foldFree glyphPosN) g

@@ -1,14 +1,17 @@
 module Test.Main where
 
 import Prelude
-import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Console (CONSOLE, log)
 
-import Control.Monad.Free
+import Control.Monad.Free (foldFree)
 
-import Data.Foreign
-import Data.Foreign.Class
-import Biodalliance.GlyphFree
+import Data.Foreign (Foreign)
+import Biodalliance.GlyphFree (Glyph, GlyphPosition, stroke, rect, circle)
+import Biodalliance.GlyphFree as GlyphFree
+
+import Test.QuickCheck.Laws (QC)
+import Test.QuickCheck.Laws.Data as Data
+
+import Type.Proxy (Proxy(..))
 
 foreign import testGlyphPos :: Foreign -> String
 
@@ -20,14 +23,16 @@ exGlyph = do
   circle {x: 18.0, y: 0.0} 2.356
 
 bdGlyph :: Foreign
-bdGlyph = write (BDGlyph { glyph: exGlyph
-                         , feature: { min: 0.0, max: 100.0 }
-                         })
+bdGlyph = GlyphFree.writeGlyph {min: 0.0, max: 100.0} exGlyph
 
-main :: forall e. Eff (console :: CONSOLE | e) Unit
+checkGlyphPos :: ∀ e. QC e Unit
+checkGlyphPos = do
+  Data.checkSemigroup prxGlyph
+  Data.checkMonoid prxGlyph
+  where
+    prxGlyph = Proxy :: Proxy GlyphPosition
+
+main :: ∀ e. QC e Unit
 main = do
-  -- log "You should add some tests."
-  -- log $ unsafeFromForeign bdGlyph
-  -- log $ testGlyphPos bdGlyph
-  foldFree glyphLogEffN exGlyph
-  -- callDraw bdGlyph
+  checkGlyphPos
+  foldFree GlyphFree.glyphLogEffN exGlyph
