@@ -5,7 +5,6 @@ import Prelude
 
 import Control.Monad.Free (Free, liftF, foldFree)
 import Data.Generic.Rep (class Generic)
-import Data.Maybe (Maybe(..))
 import Data.Monoid (class Monoid)
 
 import Control.Monad.Eff (Eff)
@@ -15,10 +14,12 @@ import Graphics.Canvas (Context2D, CANVAS)
 import Graphics.Canvas as C
 
 
-import Data.Foreign (Prop(..), toForeign, writeObject)
+import Data.Foreign (Prop(..), toForeign, writeObject, Foreign)
 import Data.Foreign.Class (class AsForeign)
 
-import Global (nan)
+import Data.Newtype (class Newtype, unwrap)
+
+import Global (infinity)
 
 
 import Control.Monad.Writer (Writer, execWriter, tell)
@@ -58,44 +59,46 @@ fill :: String -> Glyph Unit
 fill c = liftF $ Fill c unit
 
 
-newtype GlyphPosition = GlyphPos (Maybe { min :: Unit -> Number
-                                        , max :: Unit -> Number
-                                        , minY :: Unit -> Number
-                                        , maxY :: Unit -> Number
-                                        })
+newtype GlyphPosition = GlyphPos { min :: Unit -> Number
+                                 , max :: Unit -> Number
+                                 , minY :: Unit -> Number
+                                 , maxY :: Unit -> Number
+                                 }
 
 derive instance genericGlyphPosition :: Generic GlyphPosition _
+derive instance newtypeGlyphPosition :: Newtype GlyphPosition _
 
 instance showGlyphPosition :: Show GlyphPosition where
-  show (GlyphPos Nothing)   = "{ No GlyphPos }"
-  show (GlyphPos (Just gp)) = "{ min: " <> show (gp.min unit) <>
-                              ", max: " <> show (gp.max unit) <>
-                              ", minY: " <> show (gp.minY unit) <>
-                              ", maxY: " <> show (gp.maxY unit) <>
-                              " }"
+  show (GlyphPos (gp)) = "{ min: " <> show (gp.min unit) <>
+                         ", max: " <> show (gp.max unit) <>
+                         ", minY: " <> show (gp.minY unit) <>
+                         ", maxY: " <> show (gp.maxY unit) <>
+                         " }"
 
 
 instance semigroupGlyphPosition :: Semigroup GlyphPosition where
-  append gp1 (GlyphPos Nothing) = gp1
-  append (GlyphPos Nothing) gp2 = gp2
-  append (GlyphPos (Just p1)) (GlyphPos (Just p2)) =
-    GlyphPos (Just { min: const $ min (p1.min unit) (p2.min unit)
-                   , max: const $ max (p1.max unit) (p2.max unit)
-                   , minY: const $ min (p1.minY unit) (p2.minY unit)
-                   , maxY: const $ max (p1.maxY unit) (p2.maxY unit)
-                   })
+  append (GlyphPos (p1)) (GlyphPos (p2)) =
+    GlyphPos ({ min: const $ min (p1.min unit) (p2.min unit)
+              , max: const $ max (p1.max unit) (p2.max unit)
+              , minY: const $ min (p1.minY unit) (p2.minY unit)
+              , maxY: const $ max (p1.maxY unit) (p2.maxY unit)
+              })
 
 
 instance monoidGlyphPosition :: Monoid GlyphPosition where
-  mempty = GlyphPos Nothing
+  mempty = GlyphPos { min: const infinity
+                    , max: const (-infinity)
+                    , minY: const infinity
+                    , maxY: const (-infinity)
+                    }
 
 
 rectanglePos :: Point -> Point -> GlyphPosition
-rectanglePos p1 p2 = GlyphPos (Just { min: const $ Math.min p1.x p2.x
-                                    , max: const $ Math.max p1.x p2.x
-                                    , minY: const $ Math.min p1.y p2.y
-                                    , maxY: const $ Math.max p1.y p2.y
-                                    })
+rectanglePos p1 p2 = GlyphPos ({ min: const $ Math.min p1.x p2.x
+                               , max: const $ Math.max p1.x p2.x
+                               , minY: const $ Math.min p1.y p2.y
+                               , maxY: const $ Math.max p1.y p2.y
+                               })
 
 
 
@@ -103,11 +106,11 @@ glyphPosN :: GlyphF ~> Writer GlyphPosition
 glyphPosN (Stroke _ a) = pure a
 glyphPosN (Fill _ a) = pure a
 glyphPosN (Circle p r a) = do
-  tell (GlyphPos $ Just { min: \_ -> p.x - (r * 1.5)
-                        , max: \_ -> p.x + (r * 1.5)
-                        , minY: \_ -> p.y - (r * 1.5)
-                        , maxY: \_ -> p.y + (r * 1.5)
-                        })
+  tell (GlyphPos { min: \_ -> p.x - (r * 1.5)
+                 , max: \_ -> p.x + (r * 1.5)
+                 , minY: \_ -> p.y - (r * 1.5)
+                 , maxY: \_ -> p.y + (r * 1.5)
+                 })
   pure a
 glyphPosN (Line p1 p2 a) = do
   tell (rectanglePos p1 p2)
@@ -208,17 +211,16 @@ newtype BDGlyph a r = BDGlyph { glyph :: Glyph a
                               , feature :: Feature r
                               }
 
-instance glyphAsForeign :: AsForeign (BDGlyph a r) where
-  write (BDGlyph g) = writeObject [ unsafeProp "draw" $ unsafePerformEff <<< d
-                                  , unsafeProp "min" $ p.min
-                                  , unsafeProp "max" $ p.max
-                                  , unsafeProp "minY" $ p.minY
-                                  , unsafeProp "maxY" $ p.max
-                                  , unsafeProp "feature" g.feature
-                                  ]
-    where p = case interpPos g.glyph of
-            GlyphPos Nothing -> { min: const nan, max: const nan, minY: const nan, maxY: const nan }
-            GlyphPos (Just gp) -> gp
-          d ctx = (foldFree <<< glyphEffN) ctx g.glyph
+
+writeGlyph :: ∀ a r. Feature r -> Glyph a -> Foreign
+writeGlyph f g = writeObject [ unsafeProp "draw" $ unsafePerformEff <<< d
+                             , unsafeProp "min" $ p.min
+                             , unsafeProp "max" $ p.max
+                             , unsafeProp "minY" $ p.minY
+                             , unsafeProp "maxY" $ p.max
+                             , unsafeProp "feature" f
+                             ]
+    where p = unwrap $ (execWriter <<< foldFree glyphPosN) g
+          d ctx = foldFree (glyphEffN ctx) g
           unsafeProp :: ∀ x. String -> x -> Prop
-          unsafeProp k f = Prop { key: k, value: toForeign f }
+          unsafeProp k v = Prop { key: k, value: toForeign v }
