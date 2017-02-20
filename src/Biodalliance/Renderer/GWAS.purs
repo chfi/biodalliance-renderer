@@ -41,7 +41,7 @@ gwasPlotGlyphs ct fs = map (gwasGlyph ct min max) fs
         max = fromMaybe 0.0 $ _.score <$> maximumBy ord fs
         ord f1 f2 = f1.score `compare` f2.score
 
-                       -- TODO: change CoordTransform into this, handle Nothing height and yOffset
+                    -- TODO: change CoordTransform into this, handle Nothing height and yOffset
 type View = { viewStart :: Number
             , scale :: Number
             }
