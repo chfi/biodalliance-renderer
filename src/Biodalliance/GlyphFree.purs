@@ -2,34 +2,23 @@ module Biodalliance.GlyphFree
        where
 
 import Prelude
-
-import Control.Monad.Free (Free, liftF, foldFree)
+import Graphics.Canvas as C
+import Math as Math
+import Biodalliance.Coordinates (Point, CoordTransform)
+import Control.Monad.Eff (Eff)
+import Control.Monad.Eff.Console (CONSOLE, log)
+import Control.Monad.Eff.Unsafe (unsafePerformEff)
+import Control.Monad.Free (Free, foldFree, liftF)
+import Control.Monad.Writer (Writer, execWriter, tell)
+import Data.Foreign (Prop(..), toForeign, writeObject, Foreign)
 import Data.Generic.Rep (class Generic)
 import Data.Monoid (class Monoid)
-
-import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Unsafe (unsafePerformEff)
-import Control.Monad.Eff.Console (CONSOLE, log)
-import Graphics.Canvas (Context2D, CANVAS)
-import Graphics.Canvas as C
-
-import Test.QuickCheck
-
-import Data.Foreign (Prop(..), toForeign, writeObject, Foreign)
-
 import Data.Newtype (class Newtype, unwrap)
-
 import Global (infinity)
-
-
-import Control.Monad.Writer (Writer, execWriter, tell)
-
-import Math as Math
-
-import Biodalliance.Coordinates (CoordTransform, Point, worldToCanvas)
+import Graphics.Canvas (Context2D, CANVAS)
+import Test.QuickCheck (class Arbitrary, arbitrary)
 
 type Feature r = { min :: Number, max :: Number | r }
-
 
 data GlyphF a =
     Circle Point Number a
@@ -59,6 +48,10 @@ fill :: String -> Glyph Unit
 fill c = liftF $ Fill c unit
 
 
+
+
+         -- TODO: move type into separate module?
+         -- In fact,
 newtype GlyphPosition = GlyphPos { min :: Number
                                  , max :: Number
                                  , minY :: Number
@@ -78,10 +71,10 @@ instance arbitraryGlyphPosition :: Arbitrary GlyphPosition where
     pure $ GlyphPos { min: a, max: b, minY: c, maxY: d }
 
 instance showGlyphPosition :: Show GlyphPosition where
-  show (GlyphPos (gp)) = "{ min: " <> show (gp.min ) <>
-                         ", max: " <> show (gp.max ) <>
-                         ", minY: " <> show (gp.minY ) <>
-                         ", maxY: " <> show (gp.maxY ) <>
+  show (GlyphPos (gp)) = "{ min: "  <> show gp.min  <>
+                         ", max: "  <> show gp.max  <>
+                         ", minY: " <> show gp.minY <>
+                         ", maxY: " <> show gp.maxY <>
                          " }"
 
 
@@ -95,8 +88,8 @@ instance semigroupGlyphPosition :: Semigroup GlyphPosition where
 
 
 instance monoidGlyphPosition :: Monoid GlyphPosition where
-  mempty = GlyphPos { min: infinity
-                    , max: (-infinity)
+  mempty = GlyphPos { min:  infinity
+                    , max:  (-infinity)
                     , minY: infinity
                     , maxY: (-infinity)
                     }
@@ -139,6 +132,8 @@ interpPos = execWriter <<< foldFree glyphPosN
   -- could we just run it on whatever before we put it into the GlyphF?
   -- should it be attached to GlyphF?
 
+
+-- TODO: move this (and other interpreters/natural transformations) into module(s)?
 glyphEffN :: ∀ eff. Context2D -> GlyphF ~> Eff (canvas :: CANVAS | eff)
 glyphEffN ctx (Stroke c a)  = do
   C.setStrokeStyle c ctx
