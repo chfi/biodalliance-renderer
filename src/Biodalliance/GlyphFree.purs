@@ -242,10 +242,10 @@ interpSvgEff (Circle p r a) = do
   SVG.circle p.x p.y r
   pure a
 interpSvgEff (Line p1 p2 a) = do
-  -- TODO: lines!
+  SVG.line p1.x p1.y p2.x p2.y
   pure a
 interpSvgEff (Rect p1 p2 a) = do
-  SVG.rect p1.x p1.y (p2.x - p1.x) (p2.y - p1.y)
+  SVG.rect p1.x p1.y p2.x p2.y
   pure a
 
 runSvgEff :: ∀ a. Glyph a -> Array SVGElement

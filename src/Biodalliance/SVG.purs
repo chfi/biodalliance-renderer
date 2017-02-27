@@ -1,31 +1,24 @@
 module Biodalliance.SVG where
 
 import Prelude
-import Control.Monad.State as State
 import DOM.Node.Document as Document
 import DOM.Node.Element as Element
 import Control.Monad.Eff (Eff)
-import Control.Monad.Eff.Class (liftEff)
-import Control.Monad.State (State, get, put)
-import Control.Monad.State.Trans (StateT(..))
+import Control.Monad.State (get, put)
+import Control.Monad.State.Trans (StateT)
 import Control.Monad.Writer (Writer, tell)
 import DOM (DOM)
 import DOM.HTML (window)
 import DOM.HTML.Types (htmlDocumentToDocument)
 import DOM.HTML.Window (document)
 import DOM.Node.Node (appendChild)
-import DOM.Node.Types (Element, elementToNode, elementToParentNode)
+import DOM.Node.Types (Element, elementToNode)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
-import Data.Monoid (mempty)
 import Data.Nullable (toNullable)
-import Data.Traversable (traverse_)
+import Data.Traversable (intercalate, traverse_)
 import Data.Tuple (Tuple(..))
-import Debug.Trace (traceAny)
-import Partial (crash)
-import Partial.Unsafe (unsafePartial)
-
 
 -- createElementSVG :: ∀ eff. String -> Document -> Eff (dom :: DOM | eff) Element
 createElementSVG :: ∀ eff. String -> Eff (dom :: DOM | eff) Element
@@ -38,26 +31,24 @@ createElementSVG tag = do
     (htmlDocumentToDocument doc)
 
 
--- setAttribute name value element
-
 type Attribute = Tuple String String
 
 setAttributes :: ∀ eff. Array Attribute -> Element -> Eff (dom :: DOM | eff) Unit
 setAttributes attrs ele = traverse_ (\ (Tuple n v) -> Element.setAttribute n v ele) attrs
 
--- the SVG stuff is not stateful, unlike the canvas.
--- thus, to make the two things compatible (the interpreters should basically be interchangeable),
--- I should make the SVG stateful... e.g. it should keep track of stroke and fill colors,
--- as well as translations. and whatever else.
 
--- so, we get to use StateT!
+data SVGElement = SVGElement String (Array Attribute)
 
--- type SVGPath = Array String
+data SVGPathOp = SVGPathMoveTo Number Number
+               | SVGPathLineTo Number Number
+               | SVGPathClose
 
-data SVGElement = SVGPath (Array String)
-                | SVGElement String (Array Attribute)
-                | SVGText String
+derive instance eqSVGPathOp :: Eq SVGPathOp
 
+instance showSVGPathOp :: Show SVGPathOp where
+  show (SVGPathMoveTo x y) = "M " <> show x <> " " <> show y
+  show (SVGPathLineTo x y) = "L " <> show x <> " " <> show y
+  show SVGPathClose = "Z"
 
 renderSVGElement :: ∀ eff. Partial => SVGElement -> Eff (dom :: DOM | eff) Element
 renderSVGElement (SVGElement tag as) = do
@@ -86,7 +77,6 @@ type SVGContext = { stroke :: String
                   , strokeWidth :: Number
                   }
 
-
 type SVG a = StateT SVGContext (Writer (Array SVGElement)) a
 
 svgToAttribs :: SVGContext -> Array Attribute
@@ -99,14 +89,11 @@ initialSVG :: { "stroke" :: String
               , "fill" :: String
               , "strokeWidth" :: Number
               }
-initialSVG = { stroke: "#000000"
-             , fill: "#000000"
+initialSVG = { stroke: "none"
+             , fill: "none"
              , strokeWidth: 1.0
              }
 
-modifyStroke :: ∀ r. { stroke :: String | r } -> String -> { stroke :: String | r}
-modifyStroke s c = s { stroke = c }
--- so the various commands work on SVGState...
 
 setStrokeStyle :: String -> SVG Unit
 setStrokeStyle color = do
@@ -122,8 +109,7 @@ setFillStyle color = do
 
 -- TODO use Point instead...
 
-circle :: ∀ a.
-          Number -> Number -> Number
+circle :: Number -> Number -> Number
        -> SVG Unit
 circle x y r = do
   cur <- get
@@ -132,31 +118,22 @@ circle x y r = do
                 , Tuple "r" (show r)
                 ] <> svgToAttribs cur
   tell [SVGElement "circle" circle']
-  -- put $ cur { elements = cur.elements <> [SVGElement circle'] }
 
+line ::  Number -> Number -> Number -> Number
+     -> SVG Unit
+line x1 y1 x2 y2 = do
+  cur <- get
+  -- TODO would be nice to have a better way of building paths...
+  -- free monad or similar would work. Really just a writer monad, I guess
+  let path = intercalate " " $ show <$> [ SVGPathMoveTo x1 y1
+                                        , SVGPathLineTo x2 y2
+                                        , SVGPathClose
+                                        ]
+  let attribs = [ Tuple "d" path
+                ] <> svgToAttribs cur
+  tell [SVGElement "path" attribs]
 
-
--- to support lines, I need to add Path support... later!
--- line :: ∀ a.
---         Number -> Number -> Number -> Number
-     -- -> SVG a
-     -- -> SVG ((dom :: DOM | eff) Element)
-     -- -> SVG a
--- line _ _ _ _ = do
---   pure mempty
--- line x1 y1 x2 y2 s = do
---   cur <- get
---   ele <- liftEff $ createElementSVG "circle"
---   let attribs = [ Tuple "cx" (show x)
---                 , Tuple "cy" (show y)
---                 , Tuple "r" (show r)
---                 ] <> svgToAttribs cur
---   setAttributes attribs ele
---   pure ele
-
-
-rect :: ∀ a.
-        Number -> Number -> Number -> Number
+rect :: Number -> Number -> Number -> Number
      -> SVG Unit
 rect x1 y1 x2 y2 = do
   cur <- get
@@ -166,4 +143,3 @@ rect x1 y1 x2 y2 = do
               , Tuple "height" (show (y2 - y1))
               ] <> svgToAttribs cur
   tell [SVGElement "rect" rect']
-  -- put $ cur { elements = cur.elements <> [SVGElement rect'] }
