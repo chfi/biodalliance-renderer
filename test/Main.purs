@@ -1,19 +1,21 @@
 module Test.Main where
 
 import Prelude
-
-import Control.Monad.Free (foldFree)
-
-import Data.Foreign (Foreign)
-import Biodalliance.GlyphFree (Glyph, GlyphPosition, stroke, rect, circle)
 import Biodalliance.GlyphFree as GlyphFree
-
-import Test.QuickCheck.Laws (QC)
+import Biodalliance.SVG as SVG
 import Test.QuickCheck.Laws.Data as Data
-
+import Biodalliance.GlyphFree (Glyph, GlyphPosition, stroke, rect, circle)
+import Control.Monad.Eff.Console (log, logShow)
+import Control.Monad.Free (foldFree)
+import Data.Foreign (Foreign)
+import Data.Traversable (traverse, traverse_)
+import Debug.Trace (traceAny)
+import Partial.Unsafe (unsafePartial)
+import Test.QuickCheck.Laws (QC)
 import Type.Proxy (Proxy(..))
 
 foreign import testGlyphPos :: Foreign -> String
+foreign import showGlyphSVG :: Foreign -> Unit
 
 
 exGlyph :: Glyph Unit
@@ -32,7 +34,15 @@ checkGlyphPos = do
   where
     prxGlyph = Proxy :: Proxy GlyphPosition
 
-main :: ∀ e. QC e Unit
+main :: QC _ Unit
 main = do
   checkGlyphPos
   foldFree GlyphFree.glyphLogEffN exGlyph
+  let eles = GlyphFree.runSvgEff exGlyph
+  traverse_ (log <<< show) eles
+  pure $ showGlyphSVG bdGlyph
+  -- eles' <- traverse (unsafePartial SVG.renderSVGElement) eles
+  -- traceAny eles' (\_ -> pure unit)
+  -- traverse_ (traceAny eles' (\_ -> unit)) eles'
+  pure unit
+  -- traverse_ (log <<< show <<< SVG.renderSVGElement) eles

@@ -2,13 +2,16 @@ module Biodalliance.GlyphFree
        where
 
 import Prelude
+import Biodalliance.SVG as SVG
 import Graphics.Canvas as C
 import Math as Math
 import Biodalliance.Coordinates (Point, CoordTransform)
+import Biodalliance.SVG (SVG, SVGElement(..), initialSVG)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Eff.Console (CONSOLE, log)
 import Control.Monad.Eff.Unsafe (unsafePerformEff)
 import Control.Monad.Free (Free, foldFree, liftF)
+import Control.Monad.State.Trans (runStateT)
 import Control.Monad.Writer (Writer, execWriter, tell)
 import Data.Foreign (Prop(..), toForeign, writeObject, Foreign)
 import Data.Generic.Rep (class Generic)
@@ -16,6 +19,7 @@ import Data.Monoid (class Monoid)
 import Data.Newtype (class Newtype, unwrap)
 import Global (infinity)
 import Graphics.Canvas (Context2D, CANVAS)
+import Partial.Unsafe (unsafePartial)
 import Test.QuickCheck (class Arbitrary, arbitrary)
 
 type Feature r = { min :: Number, max :: Number | r }
@@ -218,8 +222,31 @@ writeGlyph f g = writeObject [ unsafeProp "draw" $ unsafePerformEff <<< d
                              , unsafeProp "minY" $ const p.minY
                              , unsafeProp "maxY" $ const p.max
                              , unsafeProp "feature" f
+                             , unsafeProp "toSVG" $ unsafePerformEff <<< (\_ -> toSVG)
                              ]
     where p = unwrap $ (execWriter <<< foldFree glyphPosN) g
           d ctx = foldFree (glyphEffN ctx) g
+          toSVG = (unsafePartial SVG.renderSVG <<< runSvgEff) g
           unsafeProp :: ∀ x. String -> x -> Prop
           unsafeProp k v = Prop { key: k, value: toForeign v }
+
+
+interpSvgEff :: GlyphF ~> SVG
+interpSvgEff (Stroke c a)  = do
+  SVG.setStrokeStyle c
+  pure a
+interpSvgEff (Fill c a)     = do
+  SVG.setFillStyle c
+  pure a
+interpSvgEff (Circle p r a) = do
+  SVG.circle p.x p.y r
+  pure a
+interpSvgEff (Line p1 p2 a) = do
+  -- TODO: lines!
+  pure a
+interpSvgEff (Rect p1 p2 a) = do
+  SVG.rect p1.x p1.y (p2.x - p1.x) (p2.y - p1.y)
+  pure a
+
+runSvgEff :: ∀ a. Glyph a -> Array SVGElement
+runSvgEff = execWriter <<< (flip runStateT initialSVG) <<< foldFree interpSvgEff

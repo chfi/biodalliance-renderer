@@ -6,6 +6,13 @@ exports.testGlyphPos = function(g) {
 };
 
 
+exports.showGlyphSVG = function(g) {
+    console.log("Showing SVG");
+    console.log(g.toSVG.toString());
+    console.log(g.toSVG());
+};
+
+
 exports.callDraw = function(g) {
     return function() {
         console.log(g);
