@@ -1,6 +1,5 @@
 module Biodalliance.Coordinates
-       ( Point
-       , CoordTransform
+       (  CoordTransform
        , HCoordTransform
        , VCoordTransform
        , VerticalScale
@@ -12,8 +11,8 @@ module Biodalliance.Coordinates
 import Prelude
 
 import Math as Math
+import Biodalliance.Types (Point)
 
-type Point = { x :: Number, y :: Number}
 type VerticalScale = Number -> Number
 
 type HCoordTransform = { scale :: Number
