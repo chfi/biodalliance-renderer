@@ -6,8 +6,8 @@ import Prelude
 import Data.Array (tail, zipWith)
 import Data.Maybe (Maybe(..))
 
-import Biodalliance.Glyph (Glyph, Feature)
-import Biodalliance.Glyph as Glyph
+import Biodalliance.Types (Feature)
+import Biodalliance.Glyph.Free as Glyph
 
 import Biodalliance.Coordinates (CoordTransform)
 
@@ -16,7 +16,6 @@ import Biodalliance.Renderer (RendererConfig)
 
 type LineRow = (score :: Number)
 type LineFeature = Feature LineRow
-type LineGlyph eff = Glyph LineRow eff
 
 
 type LinePlotConfig =
@@ -29,29 +28,31 @@ normalizeScore :: LinePlotConfig -> Number -> Number
 normalizeScore conf y = ((y - conf.minScore) / (conf.maxScore))
 
 
-linePlotGlyph :: ∀ eff. CoordTransform
-               -> LinePlotConfig
-               -> Array LineFeature
-               -> Array (LineGlyph eff)
-linePlotGlyph ct conf fs = gs
-  where fToPoint f = { x: f.min, y: normalizeScore conf f.score }
-        gs = case tail fs of
-          Nothing -> []
-          Just fs' -> zipWith (\f1 f2 -> Glyph.line (fToPoint f1) (fToPoint f2) ct f1)
-                      fs fs'
+-- linePlotGlyph :: ∀ eff. CoordTransform
+--                -> LinePlotConfig
+--                -> Array LineFeature
+--                -> Array (LineGlyph eff)
+-- linePlotGlyph ct conf fs = gs
+--   where fToPoint f = { x: f.min, y: normalizeScore conf f.score }
+--         gs = case tail fs of
+--           Nothing -> []
+--           Just fs' -> zipWith (\f1 f2 -> Glyph.line (fToPoint f1) (fToPoint f2) ct f1)
+--                       fs fs'
 
 type View = { viewStart :: Number
             , scale :: Number
             }
 
-glyphifyFeatures :: ∀ eff.
-                    View
-                 -> Array (LineFeature)
-                 -> Array (LineGlyph eff)
-glyphifyFeatures v fs = linePlotGlyph ct qtlPlotConfig fs
-  where ct = { h: { scale: v.scale, viewStart: v.viewStart }
-             , v: { height: 300.0 }
-             }
+-- glyphifyFeatures :: ∀ eff.
+--                     View
+--                  -> Array (LineFeature)
+--                  -> Array (LineGlyph eff)
+-- glyphifyFeatures v fs = linePlotGlyph ct qtlPlotConfig fs
+--   where ct = { h: { scale: v.scale, viewStart: v.viewStart }
+--              , v: { height: 300.0 }
+--              }
+
+glyphifyFeatures = id
 
 
 qtlPlotConfig :: LinePlotConfig
