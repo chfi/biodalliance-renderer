@@ -7,9 +7,16 @@ exports.testGlyphPos = function(g) {
 
 
 exports.showGlyphSVG = function(g) {
-    console.log("Showing SVG");
-    console.log(g.toSVG.toString());
-    console.log(g.toSVG());
+    console.log("Printing SVG");
+    var e = g.toSVG();
+    console.log(e);
+};
+
+exports.addGlyphSVG = function(g) {
+    console.log("Adding SVG to div #svgDiv");
+    var e = g.toSVG();
+    var d = document.getElementById("svgDiv");
+    d.appendChild(e);
 };
 
 
