@@ -50,13 +50,13 @@ instance showSVGPathOp :: Show SVGPathOp where
   show (SVGPathLineTo x y) = "L " <> show x <> " " <> show y
   show SVGPathClose = "Z"
 
-renderSVGElement :: ∀ eff. Partial => SVGElement -> Eff (dom :: DOM | eff) Element
+renderSVGElement :: ∀ eff. SVGElement -> Eff (dom :: DOM | eff) Element
 renderSVGElement (SVGElement tag as) = do
   ele <- createElementSVG tag
   setAttributes as ele
   pure ele
 
-renderSVG :: ∀ eff. Partial => Array SVGElement -> Eff (dom :: DOM | eff) Element
+renderSVG :: ∀ eff. Array SVGElement -> Eff (dom :: DOM | eff) Element
 renderSVG as = do
   win <- window
   doc <- document win
