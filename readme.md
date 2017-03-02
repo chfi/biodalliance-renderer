@@ -63,3 +63,11 @@ Look at Biodalliance.Renderer.GWAS for an example.
 
 The coordinate system used is relative and normalized to features, horizontally,
 and the canvas, vertically.
+
+# Tests
+Visual tests of the SVG and Canvas renderers can be found in Test.Main.
+To run them, first compile the test module:
+```shell
+pulp build --main Test.Main --to ./index.js
+```
+Then open index.html in a web browser.

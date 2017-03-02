@@ -12,11 +12,16 @@ exports.showGlyphSVG = function(g) {
     console.log(e);
 };
 
-exports.addGlyphSVG = function(g) {
-    console.log("Adding SVG to div #svgDiv");
-    var e = g.toSVG();
-    var d = document.getElementById("svgDiv");
-    d.appendChild(e);
+exports.addElementToDiv = function(divId) {
+    return function(e) {
+        return function () {
+            console.log("Adding SVG to div #" + divId);
+            var d = document.getElementById(divId);
+
+            console.log(e);
+            d.appendChild(e);
+        };
+    };
 };
 
 
@@ -25,5 +30,12 @@ exports.callDraw = function(g) {
         console.log(g);
         console.log(g.draw);
         g.draw();
+    };
+};
+
+
+exports.setOnLoad = function(f) {
+    return function() {
+        window.onload = f;
     };
 };
