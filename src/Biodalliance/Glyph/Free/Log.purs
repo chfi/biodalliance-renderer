@@ -27,6 +27,12 @@ glyphLogN (Rect p1 p2 a) = do
   tell $ "Drawing rectangle from (" <> show p1.x <> ", " <> show p1.y <> ") to " <>
          "(" <> show p2.x <> ", " <> show p2.y <> ")"
   pure a
+glyphLogN (Translate p a) = do
+  tell $ "Translating glyph by (" <> show p.x <> ", " <> show p.y <> ")."
+  pure a
+glyphLogN (Scale p a) = do
+  tell $ "Scaling glyph by (" <> show p.x <> ", " <> show p.y <> ")."
+  pure a
 
 
 showGlyph :: ∀ a. Glyph a -> String

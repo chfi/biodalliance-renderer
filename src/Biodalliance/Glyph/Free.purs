@@ -1,7 +1,7 @@
 module Biodalliance.Glyph.Free
        ( GlyphF(..)
        , Glyph
-       , circle, line, rect, stroke, fill
+       , circle, line, rect, stroke, fill, translate, scale
        )
        where
 
@@ -15,6 +15,8 @@ data GlyphF a =
   | Rect Point Point a
   | Stroke String a
   | Fill String a
+  | Translate Point a
+  | Scale Point a
 
 derive instance functorGlyph :: Functor GlyphF
 
@@ -35,3 +37,9 @@ stroke c = liftF $ Stroke c unit
 
 fill :: String -> Glyph Unit
 fill c = liftF $ Fill c unit
+
+translate :: Point -> Glyph Unit
+translate p = liftF $ Translate p unit
+
+scale :: Point -> Glyph Unit
+scale p = liftF $ Scale p unit

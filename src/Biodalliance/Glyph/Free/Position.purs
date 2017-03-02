@@ -35,6 +35,12 @@ glyphPosN (Line p1 p2 a) = do
 glyphPosN (Rect p1 p2 a) = do
   tell (rectanglePos p1 p2)
   pure a
+  -- TODO fix this.
+  -- will need to change Writer to State I think?
+glyphPosN (Translate p a) = do
+  pure a
+glyphPosN (Scale p a) = do
+  pure a
 
 
 glyphToGlyphPosition :: ∀ a. Glyph a -> GlyphPosition

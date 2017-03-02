@@ -43,6 +43,12 @@ glyphEffN ctx (Rect p1 p2 a) = do
   C.fillRect ctx r
   C.strokeRect ctx r
   pure a
+glyphEffN ctx (Translate p a) = do
+  C.translate { translateX: p.x, translateY: p.y } ctx
+  pure a
+glyphEffN ctx (Scale p a) = do
+  C.scale { scaleX: p.x, scaleY: p.y } ctx
+  pure a
 
 
 renderGlyph :: ∀ eff. Context2D -> Glyph ~> Eff (canvas :: CANVAS | eff)

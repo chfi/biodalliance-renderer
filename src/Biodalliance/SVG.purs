@@ -72,9 +72,18 @@ derive instance eqSVGElement :: Eq SVGElement
 instance showSVGElement :: Show SVGElement where
   show x = genericShow x
 
+type SVGTransform = { translate :: { x :: Number, y :: Number }
+                    , scale :: { x :: Number, y :: Number}
+                    }
+
+showTransform :: SVGTransform -> String
+showTransform t = "translate(" <> show t.translate.x <> "," <> show t.translate.y <> ") " <>
+                  "scale(" <> show t.scale.x <> "," <> show t.scale.y <> ")"
+
 type SVGContext = { stroke :: String
                   , fill :: String
                   , strokeWidth :: Number
+                  , transform :: SVGTransform
                   }
 
 type SVG a = StateT SVGContext (Writer (Array SVGElement)) a
@@ -83,15 +92,16 @@ svgToAttribs :: SVGContext -> Array Attribute
 svgToAttribs svg = [ Tuple "fill" svg.fill
                    , Tuple "stroke" svg.stroke
                    , Tuple "strokeWidth" (show svg.strokeWidth <> "px")
+                   , Tuple "transform" (showTransform svg.transform)
                    ]
 
-initialSVG :: { "stroke" :: String
-              , "fill" :: String
-              , "strokeWidth" :: Number
-              }
+initialSVG :: SVGContext
 initialSVG = { stroke: "none"
              , fill: "none"
              , strokeWidth: 1.0
+             , transform: { translate: { x: 0.0, y: 0.0 }
+                          , scale: { x: 1.0, y: 1.0 }
+                          }
              }
 
 
@@ -143,3 +153,22 @@ rect x1 y1 x2 y2 = do
               , Tuple "height" (show (y2 - y1))
               ] <> svgToAttribs cur
   tell [SVGElement "rect" rect']
+
+translate :: Number -> Number
+          -> SVG Unit
+translate x y = do
+  cur <- get
+  let t = cur.transform.translate
+      t' = t { x = t.x + x, y = t.y + y }
+      new = cur { transform = ( cur.transform { translate = t })}
+  put new
+
+
+scale :: Number -> Number
+      -> SVG Unit
+scale x y = do
+  cur <- get
+  let s = cur.transform.scale
+      s' = s { x = s.x * x, y = s.y * y }
+      new = cur { transform = ( cur.transform { scale = s })}
+  put new
