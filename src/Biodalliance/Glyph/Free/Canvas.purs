@@ -27,6 +27,7 @@ glyphEffN ctx (Circle p r a) = do
             , end: 2.0 * Math.pi
             }
   C.stroke ctx
+  C.fill ctx
   pure a
 glyphEffN ctx (Line p1 p2 a) = do
   C.moveTo ctx p1.x p1.y
@@ -34,11 +35,13 @@ glyphEffN ctx (Line p1 p2 a) = do
   C.stroke ctx
   pure a
 glyphEffN ctx (Rect p1 p2 a) = do
-  C.fillRect ctx { x: p1.x
-                 , y: p1.y
-                 , w: p2.x - p1.x
-                 , h: p2.y - p1.y
-                 }
+  let r = { x: p1.x
+          , y: p1.y
+          , w: p2.x - p1.x
+          , h: p2.y - p1.y
+          }
+  C.fillRect ctx r
+  C.strokeRect ctx r
   pure a
 
 
