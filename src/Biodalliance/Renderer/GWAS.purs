@@ -5,25 +5,20 @@ module Biodalliance.Renderer.GWAS
        where
 
 import Prelude
+import Biodalliance.Glyph.Free
+import Biodalliance.Glyph.Free.Interpret
+import Biodalliance.Feature (Feature(..), chrToScreen)
+import Data.Foreign (Foreign)
 
-
-import Data.Foldable (minimumBy, maximumBy)
-import Data.Maybe (fromMaybe)
-
--- import Biodalliance.Glyph (Glyph, Feature)
-import Biodalliance.Feature (Feature)
-import Biodalliance.Glyph.Free as Glyph
-
-import Biodalliance.Coordinates (CoordTransform)
-
-import Biodalliance.Renderer (RendererConfig)
 
 type GWASRow = (score :: Number)
 type GWASFeature = Feature GWASRow
 -- type GWASGlyph eff = Glyph GWASRow eff
 
 
-type GWASConfig = RendererConfig ()
+-- type GWASConfig = RendererConfig ()
+
+
 
 -- gwasGlyph :: ∀ eff. CoordTransform -> Number -> Number -> GWASFeature -> GWASGlyph eff
 -- gwasGlyph ct min max f = Glyph.circle { x: f.min, y: (f.score / max) } 3.0 ct f
@@ -50,5 +45,15 @@ type View = { viewStart :: Number
 --              , v: { height: 300.0 }
 --              }
 
+glyphifyFeature :: GWASFeature -> Glyph Unit
+glyphifyFeature (Feature f) = do
+  stroke "#ff0000"
+  fill "#cccccc"
+  circle { x: 0.0, y: 20.0 * f.score } 5.0
 
-glyphifyFeatures = id
+
+glyphifyFeatures :: View -> Array GWASFeature -> Array Foreign
+glyphifyFeatures v fs = do
+  f <- fs
+  let f' = chrToScreen (1.0/v.scale) v.viewStart f
+  pure $ writeGlyph f (glyphifyFeature f')

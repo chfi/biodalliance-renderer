@@ -2,6 +2,7 @@ module Biodalliance.Feature
        ( Feature(..)
        , translateFeature
        , scaleFeature
+       , chrToScreen
        ) where
 
 import Prelude
@@ -28,3 +29,7 @@ scaleFeature :: Number -> Feature ~> Feature
 scaleFeature x (Feature f) = Feature $ f { min = f.min * x
                                          , max = f.max * x
                                          }
+
+
+chrToScreen :: Number -> Number -> Feature ~> Feature
+chrToScreen scale viewStart = translateFeature viewStart <<< scaleFeature scale
