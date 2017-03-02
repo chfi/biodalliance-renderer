@@ -6,7 +6,7 @@ import Prelude
 import Data.Array (tail, zipWith)
 import Data.Maybe (Maybe(..))
 
-import Biodalliance.Types (Feature)
+import Biodalliance.Feature (Feature)
 import Biodalliance.Glyph.Free as Glyph
 
 import Biodalliance.Coordinates (CoordTransform)

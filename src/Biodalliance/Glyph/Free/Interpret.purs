@@ -7,7 +7,7 @@ import Biodalliance.Glyph.Free.Canvas as Canvas
 import Biodalliance.Glyph.Free.SVG as SVG
 import Biodalliance.Glyph.Free (Glyph)
 import Biodalliance.Glyph.Free.Position (glyphToGlyphPosition)
-import Biodalliance.Types (Feature)
+import Biodalliance.Feature (Feature)
 import Control.Monad.Eff.Unsafe (unsafePerformEff)
 import Data.Foreign (Foreign, Prop(..), toForeign, writeObject)
 import Data.Newtype (unwrap)

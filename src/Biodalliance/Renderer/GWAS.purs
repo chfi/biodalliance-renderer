@@ -11,7 +11,7 @@ import Data.Foldable (minimumBy, maximumBy)
 import Data.Maybe (fromMaybe)
 
 -- import Biodalliance.Glyph (Glyph, Feature)
-import Biodalliance.Types (Feature)
+import Biodalliance.Feature (Feature)
 import Biodalliance.Glyph.Free as Glyph
 
 import Biodalliance.Coordinates (CoordTransform)
