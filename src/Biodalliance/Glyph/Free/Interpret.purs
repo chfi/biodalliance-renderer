@@ -18,7 +18,7 @@ writeGlyph f g = writeObject [ unsafeProp "draw" $ unsafePerformEff <<< \ctx -> 
                              , unsafeProp "min" $ const p.min
                              , unsafeProp "max" $ const p.max
                              , unsafeProp "minY" $ const p.minY
-                             , unsafeProp "maxY" $ const p.max
+                             , unsafeProp "maxY" $ const p.maxY
                              , unsafeProp "feature" f
                              , unsafeProp "toSVG" $ unsafePerformEff <<< \_ -> SVG.renderGlyph g
                              ]
