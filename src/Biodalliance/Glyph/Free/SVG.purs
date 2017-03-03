@@ -29,12 +29,10 @@ interpSVGEff (Line p1 p2 a) = do
 interpSVGEff (Rect p1 p2 a) = do
   SVG.rect p1.x p1.y p2.x p2.y
   pure a
-interpSVGEff (Translate p a) = do
-  SVG.translate p.x p.y
+interpSVGEff (Path ps a) = do
+  SVG.path ps
   pure a
-interpSVGEff (Scale p a) = do
-  SVG.scale p.x p.y
-  pure a
+
 
 runSVGEff :: ∀ a. Glyph a -> Array SVGElement
 runSVGEff = execWriter <<< (flip runStateT initialSVG) <<< foldFree interpSVGEff

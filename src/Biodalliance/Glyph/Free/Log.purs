@@ -6,6 +6,7 @@ import Prelude
 import Biodalliance.Glyph.Free (GlyphF(..), Glyph)
 import Control.Monad.Free (foldFree)
 import Control.Monad.Writer (Writer, execWriter, tell)
+import Data.Traversable (traverse_)
 
 
 glyphLogN :: GlyphF ~> Writer String
@@ -27,11 +28,9 @@ glyphLogN (Rect p1 p2 a) = do
   tell $ "Drawing rectangle from (" <> show p1.x <> ", " <> show p1.y <> ") to " <>
          "(" <> show p2.x <> ", " <> show p2.y <> ")"
   pure a
-glyphLogN (Translate p a) = do
-  tell $ "Translating glyph by (" <> show p.x <> ", " <> show p.y <> ")."
-  pure a
-glyphLogN (Scale p a) = do
-  tell $ "Scaling glyph by (" <> show p.x <> ", " <> show p.y <> ")."
+glyphLogN (Path ps a) = do
+  tell $ "Drawing a path:"
+  traverse_ (\p -> tell ("(" <> show p.x <> ", " <> show p.y <> ")")) ps
   pure a
 
 

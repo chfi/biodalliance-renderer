@@ -13,6 +13,7 @@ import DOM.HTML.Types (htmlDocumentToDocument)
 import DOM.HTML.Window (document)
 import DOM.Node.Node (appendChild)
 import DOM.Node.Types (Element, elementToNode)
+import Data.Array (uncons)
 import Data.Generic.Rep (class Generic)
 import Data.Generic.Rep.Show (genericShow)
 import Data.Maybe (Maybe(..))
@@ -131,17 +132,23 @@ circle x y r = do
 
 line ::  Number -> Number -> Number -> Number
      -> SVG Unit
-line x1 y1 x2 y2 = do
-  cur <- get
-  -- TODO would be nice to have a better way of building paths...
-  -- free monad or similar would work. Really just a writer monad, I guess
-  let path = intercalate " " $ show <$> [ SVGPathMoveTo x1 y1
-                                        , SVGPathLineTo x2 y2
-                                        , SVGPathClose
-                                        ]
-  let attribs = [ Tuple "d" path
-                ] <> svgToAttribs cur
-  tell [SVGElement "path" attribs]
+line x1 y1 x2 y2 = path [ {x:x1, y:y1}, {x:x2, y:y2} ]
+
+
+path :: Array { x :: Number, y :: Number }
+     -> SVG Unit
+path ps = do
+  case uncons ps of
+    Nothing -> pure unit
+    Just { head, tail } -> do
+      cur <- get
+      let fst = [ SVGPathMoveTo head.x head.y
+                ]
+          rest = (\p -> SVGPathLineTo p.x p.y) <$> ps
+          path' = intercalate " " $ show <$> fst <> rest <> [SVGPathClose]
+          attribs = [ Tuple "d" path' ] <> svgToAttribs cur
+      tell [SVGElement "path" attribs]
+
 
 rect :: Number -> Number -> Number -> Number
      -> SVG Unit

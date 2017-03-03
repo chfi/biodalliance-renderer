@@ -3,13 +3,14 @@ module Biodalliance.Glyph.Free.Position
        where
 
 import Prelude
-import Biodalliance.Types (Point)
+import Math as Math
 import Biodalliance.Glyph.Free (GlyphF(..), Glyph)
 import Biodalliance.Glyph.Position (GlyphPosition(GlyphPos))
+import Biodalliance.Types (Point)
 import Control.Monad.Free (foldFree)
 import Control.Monad.RWS (tell)
 import Control.Monad.Writer (Writer, execWriter)
-import Math as Math
+import Data.Traversable (traverse_)
 
 
 rectanglePos :: Point -> Point -> GlyphPosition
@@ -18,6 +19,13 @@ rectanglePos p1 p2 = GlyphPos ({ min: Math.min p1.x p2.x
                                , minY: Math.min p1.y p2.y
                                , maxY: Math.max p1.y p2.y
                                })
+
+pointPos :: Point -> GlyphPosition
+pointPos p = GlyphPos ({ min: Math.min p.x p.x
+                       , max: Math.max p.x p.x
+                       , minY: Math.min p.y p.y
+                       , maxY: Math.max p.y p.y
+                       })
 
 glyphPosN :: GlyphF ~> Writer GlyphPosition
 glyphPosN (Stroke _ a) = pure a
@@ -35,11 +43,8 @@ glyphPosN (Line p1 p2 a) = do
 glyphPosN (Rect p1 p2 a) = do
   tell (rectanglePos p1 p2)
   pure a
-  -- TODO fix this.
-  -- will need to change Writer to State I think?
-glyphPosN (Translate p a) = do
-  pure a
-glyphPosN (Scale p a) = do
+glyphPosN (Path ps a) = do
+  traverse_ (tell <<< pointPos) ps
   pure a
 
 

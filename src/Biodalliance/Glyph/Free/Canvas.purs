@@ -9,6 +9,7 @@ import Math as Math
 import Biodalliance.Glyph.Free (GlyphF(..), Glyph)
 import Control.Monad.Eff (Eff)
 import Control.Monad.Free (foldFree)
+import Data.Traversable (traverse, traverse_)
 import Graphics.Canvas (CANVAS, Context2D)
 
 glyphEffN :: ∀ eff. Context2D -> GlyphF ~> Eff (canvas :: CANVAS | eff)
@@ -43,16 +44,13 @@ glyphEffN ctx (Rect p1 p2 a) = do
   C.fillRect ctx r
   C.strokeRect ctx r
   pure a
-glyphEffN ctx (Translate p a) = do
-  C.translate { translateX: p.x, translateY: p.y } ctx
+glyphEffN ctx (Path ps a) = do
+  C.beginPath ctx
+  traverse_ (\p -> C.lineTo ctx p.x p.y) ps
+  C.stroke ctx
   pure a
-glyphEffN ctx (Scale p a) = do
-  C.scale { scaleX: p.x, scaleY: p.y } ctx
-  pure a
+
 
 
 renderGlyph :: ∀ eff. Context2D -> Glyph ~> Eff (canvas :: CANVAS | eff)
 renderGlyph = foldFree <<< glyphEffN
-
--- renderGlyph :: ∀ eff. Context2D -> Glyph ~> Eff (canvas :: CANVAS | eff)
--- renderGlyph ctx = foldFree (glyphEffN ctx)
