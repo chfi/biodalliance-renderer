@@ -1,5 +1,5 @@
 module Biodalliance.Renderer.GWAS
-       ( glyphifyFeatures
+       ( render
        ) where
 
 import Prelude
@@ -12,9 +12,13 @@ import Biodalliance.Glyph.Free (Glyph, circle, fill, stroke)
 import Biodalliance.Glyph.Free.Interpret (writeGlyph)
 import Control.Error.Util (hush)
 import Control.Monad.Except (runExcept)
+import Data.Foldable (foldr)
 import Data.Foreign (F, Foreign, readString, toForeign)
 import Data.Foreign.Index (prop)
-import Global (readFloat)
+import Data.Foreign.Null (writeNull)
+import Data.Maybe (Maybe(..))
+import Data.Traversable (sequence)
+import Global (readFloat, infinity)
 
 type GWASRow = (score :: Number)
 type GWASFeature = Feature GWASRow
@@ -43,5 +47,24 @@ featureToForeign v f =
       f' = hush $ runExcept f
   in writeGlyph f' g
 
-glyphifyFeatures :: View -> Array Foreign -> Foreign
-glyphifyFeatures v fs = toForeign $ featureToForeign v <<< readGWASFeature <$> fs
+writeFeatures :: View -> Array Foreign -> Foreign
+writeFeatures v fs = toForeign $ featureToForeign v <<< readGWASFeature <$> fs
+
+quant :: Array GWASFeature -> { min :: Number, max :: Number }
+quant = foldr (\(Feature cur) {min, max} -> { min: Math.min cur.score min
+                                            , max: Math.max cur.score max})
+             { min: infinity, max: (-infinity)}
+
+writeResult :: Foreign -> Maybe { min :: Number, max :: Number } -> Foreign
+writeResult g q = toForeign { glyphs: g
+                            , quant: q'
+                            }
+                  where q' = case q of Just x  -> toForeign x
+                                       Nothing -> writeNull
+
+render :: View -> Array Foreign -> Foreign
+render v fs =
+  let fs' = readGWASFeature <$> fs
+      gs = toForeign $ featureToForeign v <$> fs'
+      q = quant <$> (sequence $ (hush <<< runExcept) <$> fs')
+  in writeResult gs q
